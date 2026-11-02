@@ -1,0 +1,30 @@
+# Python / build
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# Environments and credentials
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.codex/
+.aws/
+*.pem
+*.key
+# External data and generated artifacts
+/data/
+/outputs/
+/artifacts/
+/reports/
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
