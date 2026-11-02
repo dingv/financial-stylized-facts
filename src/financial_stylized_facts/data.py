@@ -1,6 +1,7 @@
 """Explicit time sampling; never join returns across missing grid points."""
 from dataclasses import dataclass
 from pathlib import Path
+from numbers import Integral
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,21 @@ class AnalysisConfig:
     min_pairs: int = 20
     max_grid_points: int = 2_000_000
     price_type: str = "unspecified"
+    aggregation_factors: tuple[int, ...] = (1, 5, 10, 20)
+    rms_window: int = 20
+    burst_threshold: float = 3.0
 
     def validate(self):
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window"]:
+            if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
+                raise ValueError(f"{name} 必须为整数")
+        factors = self.aggregation_factors
+        if not factors or len(factors) > 12 or any(isinstance(x, bool) or not isinstance(x, Integral) or x < 1 or x > 10000 for x in factors):
+            raise ValueError("aggregation_factors 需为 1–10000 的正整数，最多 12 项")
+        if list(factors) != sorted(set(factors)) or factors[0] != 1:
+            raise ValueError("aggregation_factors 必须从 1 开始、严格递增")
+        if self.rms_window < 2 or not np.isfinite(self.burst_threshold) or self.burst_threshold <= 0:
+            raise ValueError("rms_window 至少为 2；burst_threshold 必须有限且为正")
         if self.sampling not in {"grid", "observations"}:
             raise ValueError("sampling 必须是 grid 或 observations")
         if self.session_policy not in {"date", "continuous"}:

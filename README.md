@@ -4,7 +4,7 @@
 
 目标是覆盖 Cont 总结的 11 项事实：输入价格、收益率及可选成交量数据，生成便于阅读的图文报告，以及可复核的统计结果。用于比较真实市场与模拟市场，不局限于外汇。
 
-**当前版本：基础流程已可运行。** 支持 CSV 价格输入、时间采样、收益分布与三类自相关，生成独立 HTML 报告和统计数据。当前只提供收益自相关、厚尾、波动聚集的描述性诊断；尚未完成 11 项事实或正式显著性检验。
+**当前版本：六项事实已有描述性诊断。** 支持 CSV 价格输入、时间采样、收益分布、三类自相关、涨跌不对称、多尺度分布变化和间歇性分析，生成独立 HTML 报告与统计数据。尚未完成全部 11 项事实或正式显著性检验。
 
 ## 先看一份报告
 
@@ -18,7 +18,7 @@ python examples/synthetic_prices.py "$demo_dir/prices.csv"
 fsf analyze "$demo_dir/prices.csv" --output "$demo_dir/report" --frequency 1min --price-type synthetic
 ```
 
-打开输出目录里的 `index.html`，即可切换查看三种合成序列：独立高斯收益、独立厚尾收益，以及有波动持续性的 GARCH 收益。HTML 已嵌入图片，可以单独复制到本地打开。数值另外保存在 `results.json`、`summary.csv` 和 `acf.csv`。
+打开输出目录里的 `index.html`，即可切换查看四种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH，以及有明显偏度的独立收益。HTML 已嵌入图片，可以单独复制到本地打开。数值另外保存在 `results.json`、`summary.csv`、`acf.csv` 和 `scales.csv`。
 
 自己的 CSV 至少包含 `timestamp,price`；多资产、多路径使用 `asset_id,path_id`。详见[使用指南](docs/usage.md)。原始 EBS/FRED 文件尚未接入专用适配器，不能直接假定其字段符合本接口。
 

@@ -20,6 +20,7 @@ from scipy.stats import gaussian_kde
 from . import __version__
 from .data import AnalysisConfig, read_prices, sample_path
 from .statistics import distribution, three_acfs
+from .diagnostics import analyze_diagnostics
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -123,6 +124,62 @@ def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
 
 
+def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
+    paths, embedded = {}, {}
+    fig = _figure(height=3.5)
+    ax = fig.subplots()
+    tails = diagnostics["asymmetry"]["tails"]
+    if tails:
+        thresholds = np.array([row["sigma"] for row in tails])
+        ax.bar(thresholds-.17, [r["left_probability"] for r in tails], .34, label="Left tail", color="#c77d55")
+        ax.bar(thresholds+.17, [r["right_probability"] for r in tails], .34, label="Right tail", color="#2563a6")
+        ax.set_xticks(thresholds)
+        ax.legend(frameon=False)
+    else:
+        ax.text(.5, .5, "Insufficient data / zero variance", transform=ax.transAxes, ha="center")
+    ax.set(xlabel="Distance from path mean (standard deviations)", ylabel="Fraction of returns")
+    _style(ax)
+    paths["asymmetry"] = f"figures/{group_id}-asymmetry.png"
+    embedded["asymmetry"] = _save(fig, directory/paths["asymmetry"])
+
+    fig = _figure(height=3.5)
+    axes = fig.subplots(1, 2)
+    rows = diagnostics["aggregation"]["scales"]
+    locations = np.asarray([r["factor"] for r in rows])
+    labels = [str(pd.Timedelta(config.frequency)*r["factor"]) if config.sampling == "grid"
+              else f"{r['factor']} obs." for r in rows]
+    # Use compact elapsed units rather than long Timedelta strings on the axis.
+    if config.sampling == "grid":
+        seconds = [pd.Timedelta(config.frequency).total_seconds()*r["factor"] for r in rows]
+        labels = [f"{s/3600:g}h" if s >= 3600 else f"{s/60:g}m" if s >= 60 else f"{s:g}s" for s in seconds]
+    for ax, key, title in zip(axes, ["excess_kurtosis", "normal_quantile_rmse"], ["Excess kurtosis", "Normal quantile RMSE"]):
+        values = [np.nan if r[key] is None else r[key] for r in rows]
+        ax.plot(locations, values, "o-", color="#2563a6", markersize=4)
+        ax.axhline(0, linewidth=.8, color="#9aa3ad")
+        ax.set_xticks(locations, labels, rotation=35 if len(rows)>5 else 0)
+        ax.set(title=title, xlabel="Return interval")
+        if not np.isfinite(values).any():
+            ax.text(.5, .5, "Not computable", transform=ax.transAxes, ha="center")
+        _style(ax)
+    paths["aggregation"] = f"figures/{group_id}-aggregation.png"
+    embedded["aggregation"] = _save(fig, directory/paths["aggregation"])
+
+    fig = _figure(height=3.5)
+    ax = fig.subplots()
+    for (_, frame), values in zip(sampled.groupby("session_id", sort=False), rms):
+        ax.plot(frame["timestamp"], values, color="#598778", linewidth=1)
+    if not any(np.isfinite(a).any() for a in rms):
+        ax.text(.5, .5, "No complete rolling window", transform=ax.transAxes, ha="center")
+    locator = mdates.AutoDateLocator(minticks=3, maxticks=6)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    ax.set(xlabel="Time (UTC)", ylabel=f"Rolling RMS ({config.rms_window} returns)")
+    _style(ax)
+    paths["intermittency"] = f"figures/{group_id}-intermittency.png"
+    embedded["intermittency"] = _save(fig, directory/paths["intermittency"])
+    return paths, embedded
+
+
 def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基础统计诊断"):
     """Analyze canonical price CSV, writing a new output directory only.
 
@@ -140,16 +197,17 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         sampled, quality = sample_path(frame, config)
         metrics = distribution(sampled["log_return"])
         acfs = three_acfs(sampled, config.max_lag, config.min_pairs)
-        groups.append((str(asset), str(path), sampled, quality, metrics, acfs))
+        diagnostics, rms = analyze_diagnostics(sampled, config)
+        groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.1", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.2", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i in [1, 2, 6] else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i <= 6 else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -159,11 +217,14 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         digest.update(str(p.relative_to(source)).encode())
         digest.update(p.read_bytes())
     result["provenance"]["source_sha256"] = digest.hexdigest()
-    views, summary_rows, acf_rows = [], [], []
-    for index, (asset, path, sampled, quality, metrics, acfs) in enumerate(groups):
+    views, summary_rows, acf_rows, scale_rows = [], [], [], []
+    for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
-        item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths}
+        new_paths, new_images = _diagnostic_plots(sampled, diagnostics, rms, config, output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
+        item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
         result["groups"].append(item)
         warnings = []
         if metrics["n"] < 100:
@@ -176,6 +237,12 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
             warnings.append("同时间的多条价格按 CSV 原始行顺序取最后一条。")
         views.append({**item, "images": embedded, "id": group_id, "warnings": warnings})
         summary_rows.append({"asset_id": asset, "path_id": path, **quality, **{k: metrics[k] for k in ["mean", "std", "zero_fraction", "excess_kurtosis", "status", "reason"]}})
+        summary_rows[-1].update(skewness=diagnostics["asymmetry"]["skewness"],
+                                exceedance_fraction=diagnostics["intermittency"]["exceedance_fraction"])
+        for row in diagnostics["aggregation"]["scales"]:
+            scale_rows.append({"asset_id": asset, "path_id": path, **row,
+                               "interval_seconds": pd.Timedelta(config.frequency).total_seconds()*row["factor"] if config.sampling == "grid" else None,
+                               "observation_unit": config.observation_unit})
         for name, estimate in acfs.items():
             for lag, value, count in zip(estimate["lags"], estimate["values"], estimate["pair_counts"]):
                 acf_rows.append({"asset_id": asset, "path_id": path, "series": name, "lag": lag,
@@ -185,6 +252,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     serialized = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
+    pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)
     env = Environment(loader=FileSystemLoader(source / "templates"), autoescape=select_autoescape(["html"]))
     env.filters["number"] = _fmt

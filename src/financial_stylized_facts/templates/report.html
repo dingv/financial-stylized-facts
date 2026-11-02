@@ -18,7 +18,7 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版提供收益自相关、厚尾和波动聚集的描述性诊断，尚未完成显著性检验，也不把计算结果自动判为“复现成功”。</p></header>
+<p class="muted">本版覆盖六项事实的描述性诊断：收益相关、厚尾、涨跌不对称、聚合高斯化、间歇性和波动聚集。正式统计检验仍待补齐。</p></header>
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
@@ -38,6 +38,20 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益、绝对收益和平方收益自相关">
 <p class="muted">只比较同一交易时段内的观测，保留缺口占用的时间。少于 {{ config.min_pairs }} 对观测的位置留空。本版没有置信区间，因此不自动把正相关称为显著聚集或长记忆。</p>
 {% for name, a in g.acf.items() %}{% if a.status != 'computed' %}<p class="muted">{{ name }}：{{ a.reason }}</p>{% endif %}{% endfor %}</section>
+<section class="card"><h2>4. 大涨和大跌一样常见吗？</h2><p>橙色柱是均值左侧的大幅变化，蓝色柱是右侧。两边采用相同的标准差距离，并以本路径全部有效收益为分母。</p>
+<img src="{{ g.images.asymmetry }}" alt="{{ g.asset_id }} {{ g.path_id }} 的左右尾概率比较">
+{% if g.asymmetry.skewness is not none %}<p>修正偏度为 <strong>{{ g.asymmetry.skewness|number }}</strong>。正值表示标准化三阶矩偏向右侧，负值偏向左侧；它与“上涨次数更多”不是一回事。</p>{% else %}<p>{{ g.asymmetry.reason }}</p>{% endif %}
+<details><summary>查看涨跌分位数与连续涨跌段</summary><p>尾部柱图围绕本路径均值比较；下表分位数和连续涨跌段使用原始收益。连续同号收益构成一段，零收益、反向变化和缺口都会断段。边界处可能未完整观察到的段单独计数，不用于段幅度摘要。这不是完整的首达时间或最大回撤检验。</p>
+<table><tr><th>收益分位数</th><th>数值</th></tr>{% for q, v in g.asymmetry.quantiles.items() %}<tr><td>{{ q }}</td><td>{{ v|number }}</td></tr>{% endfor %}</table>
+<table><tr><th>连续段</th><th>完整段数</th><th>边界截断段数</th><th>累计对数收益绝对值中位数</th></tr>{% for name, r in g.asymmetry.runs.items() %}<tr><td>{{ '上涨' if name == 'up' else '下跌' }}</td><td>{{ r.complete_count }}</td><td>{{ r.boundary_censored_count }}</td><td>{{ r.median_abs_log_return|number }}</td></tr>{% endfor %}</table></details></section>
+<section class="card"><h2>5. 拉长时间间隔，分布更接近高斯吗？</h2><p>左图比较超额峰度，右图比较标准化收益分位数与高斯分位数的距离，距离越小表示选定分位数更接近。两者随尺度的变化应结合样本量一起看。</p>
+<img src="{{ g.images.aggregation }}" alt="{{ g.asset_id }} {{ g.path_id }} 的多尺度峰度与分位数偏离">
+<div class="table-wrap"><table><tr><th>基础间隔的倍数</th><th>有效收益数</th><th>超额峰度</th><th>分位数距离</th></tr>{% for s in g.aggregation.scales %}<tr><td>{{ s.factor }}</td><td>{{ s.n }}{% if s.small_sample %}（小样本）{% endif %}</td><td>{{ s.excess_kurtosis|number }}</td><td>{{ s.normal_quantile_rmse|number }}</td></tr>{% endfor %}</table></div>
+<p class="muted">在每个交易段内，从首个采样价格起按整块聚合；块内缺失则整块无效，尾部不完整块舍弃。每个尺度分别标准化。距离不是检验 p 值，样本变少也不等于已经高斯化。</p></section>
+<section class="card"><h2>6. 平静和剧烈的时段怎样交替？</h2><p>曲线是最近 {{ config.rms_window }} 个基础收益的均方根（RMS）。高处表示这段时间价格变化较大，低处表示较平静。只有窗口完整且位于同一交易段时才计算。</p>
+<img src="{{ g.images.intermittency }}" alt="{{ g.asset_id }} {{ g.path_id }} 的滚动 RMS">
+{% if g.intermittency.exceedance_fraction is not none %}<p>偏离全路径均值超过 {{ config.burst_threshold }} 个标准差的收益共 <strong>{{ g.intermittency.exceedance_count }}</strong> 条，占 <strong>{{ (g.intermittency.exceedance_fraction*100)|number }}%</strong>；这些观测形成 {{ g.intermittency.episodes.observed_count }} 个连续片段，最长观察到 {{ g.intermittency.episodes.max_observed_length }} 个基础间隔。</p>{% else %}<p>{{ g.intermittency.reason }}</p>{% endif %}
+<p class="muted">完整 RMS 窗口 {{ g.intermittency.rms_valid_windows }} 个。RMS 没有减去局部均值，漂移也会使它升高；大幅波动阈值是统一的描述约定，不是间歇性的显著性检验。</p></section>
 <details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
 <tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
 <tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>

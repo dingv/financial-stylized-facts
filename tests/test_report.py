@@ -32,13 +32,16 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     text = (out / "index.html").read_text()
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
-    assert text.count("data:image/png;base64,") == 6
+    assert text.count("data:image/png;base64,") == 12
     assert "path-select" in text and "尚未实现" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
     assert json.loads(numerical)["coverage"][6]["status"] == "not_implemented"
     assert len(pd.read_csv(out / "summary.csv")) == 2
-    assert len(list((out / "figures").glob("*.png"))) == 6
+    assert len(list((out / "figures").glob("*.png"))) == 12
+    assert len(pd.read_csv(out / "scales.csv")) == 8
+    assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
+    assert all(x["status"] == "descriptive_only" for x in result["coverage"][:6])
     with pytest.raises(FileExistsError):
         analyze_csv(p, out)
 
@@ -59,3 +62,18 @@ def test_cli_reports_invalid_data_without_traceback(tmp_path):
     assert "无法生成报告" in proc.stderr
     assert "Traceback" not in proc.stderr
     assert not (tmp_path / "report").exists()
+
+
+def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
+    p = tmp_path / "prices.csv"
+    pd.DataFrame({"timestamp": pd.date_range("2024-01-01", periods=61, freq="min", tz="UTC"),
+                  "price": 100*np.exp(.001*np.sin(np.arange(61)))}).to_csv(p, index=False)
+    out = tmp_path / "cli-report"
+    proc = subprocess.run([sys.executable, "-m", "financial_stylized_facts", "analyze", str(p),
+                           "--output", str(out), "--frequency", "1min", "--aggregation-factors", "1", "3", "6",
+                           "--rms-window", "4", "--burst-threshold", "2"], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads((out / "results.json").read_text())
+    assert result["config"]["aggregation_factors"] == [1, 3, 6]
+    assert [r["n"] for r in result["groups"][0]["aggregation"]["scales"]] == [60, 20, 10]
+    assert result["groups"][0]["intermittency"]["window"] == 4

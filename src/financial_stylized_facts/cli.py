@@ -25,6 +25,9 @@ def main(argv=None):
     analyze.add_argument("--min-pairs", type=int, default=20)
     analyze.add_argument("--max-grid-points", type=int, default=2_000_000)
     analyze.add_argument("--price-type", default="unspecified")
+    analyze.add_argument("--aggregation-factors", type=int, nargs="+", default=[1, 5, 10, 20], help="基本采样间隔的整数倍，非重叠聚合")
+    analyze.add_argument("--rms-window", type=int, default=20, help="滚动 RMS 的基础收益观测数")
+    analyze.add_argument("--burst-threshold", type=float, default=3.0, help="大幅波动阈值：偏离本路径均值的标准差倍数")
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}
@@ -34,7 +37,7 @@ def main(argv=None):
         print(f"无法生成报告：{exc}", file=sys.stderr)
         return 2
     print(f"报告：{(args.output / 'index.html').resolve()}")
-    print(f"分别分析 {len(result['groups'])} 组资产/路径；数值已写入 results.json、summary.csv 和 acf.csv。")
+    print(f"分别分析 {len(result['groups'])} 组资产/路径；数值已写入 results.json、summary.csv、acf.csv 和 scales.csv。")
     return 0
 
 
