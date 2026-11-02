@@ -18,7 +18,9 @@
 ## 目录
 
 - `src/financial_stylized_facts/`：Python 包。
-- `docs/roadmap.md`：开发路线和评估范围。
+- `docs/roadmap.md`：开发路线。
+- `docs/evaluation-plan.md`：11 项事实的评估与报告方案。
+- `docs/development.md`：Conda 环境使用说明。
 - `docs/internal/`：后续技术规格与实现记录。
 - `tests/`：后续统计验证。
 - `examples/`：后续使用示例。
@@ -27,6 +29,6 @@
 
 ## 开发状态
 
-计划使用独立 Python 环境，不在 Conda base 中安装依赖。目前未安装依赖，也未建立新的 Conda 环境。
+开发统一使用 Conda 环境 `financial-stylized-facts`，不用 venv。环境使用与重建见[开发环境](docs/development.md)。统计功能仍处于设计阶段，先阅读[评估方案](docs/evaluation-plan.md)。
 
 项目计划开源；公开发布前再确定许可证、完善文档和验证。详见[开发路线](docs/roadmap.md)。

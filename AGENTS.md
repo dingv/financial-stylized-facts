@@ -18,7 +18,7 @@
 
 - 原始市场数据位于仓库外；不复制或提交专有数据、密钥、凭据和大规模输出。
 - 不修改既有外汇数据或 Sasaki 模拟器。
-- 使用本项目独立环境；不向 Conda base 或 sasaki-fx 安装依赖。
+- 统一使用 Conda 环境 financial-stylized-facts（/home/dingwei/envs/financial-stylized-facts），不用 venv；不向 Conda base 或 sasaki-fx 安装依赖。
 - 大规模批量任务先说明配置、资源预算与输出位置。
 
 ## 文档与报告
