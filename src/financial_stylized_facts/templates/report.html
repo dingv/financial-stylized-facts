@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ result.title }}</title>
+<style>
+:root{color-scheme:light;--ink:#263341;--muted:#657386;--line:#e0e6ed;--blue:#2563a6}
+*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:var(--ink);font:16px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif}
+main{max-width:1080px;margin:40px auto;padding:0 28px 60px}header{padding:20px 0 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:13px;color:var(--blue);letter-spacing:.09em}h1{font-size:30px;line-height:1.35;margin:12px 0}h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:0 0 6px}
+p{margin:8px 0 16px}.muted,small{color:var(--muted)}.lead{max-width:850px}.toolbar{margin:24px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+select{font:inherit;padding:8px 12px;border:1px solid #bbc7d5;border-radius:7px;background:white;max-width:100%}
+section.card{margin:20px 0;padding:26px 28px;background:white;border:1px solid var(--line);border-radius:12px}img{display:block;width:100%;height:auto;margin-top:12px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}.metric{padding:14px 18px;background:#eef3f8;border-radius:8px}.value{font-size:25px;font-weight:650;overflow-wrap:anywhere}
+.notice{border-left:3px solid #cf9b42;padding:8px 14px;background:#fff9ee;margin:10px 0}.path[hidden]{display:none}
+details{margin:20px 0}summary{cursor:pointer;font-weight:600}table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}td,th{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
+code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px;color:var(--muted)}.table-wrap{overflow:auto}
+@media(max-width:650px){main{padding:0 14px;margin:16px auto}.metrics{grid-template-columns:1fr}section.card{padding:18px 14px}h1{font-size:25px}}
+@media print{body{background:white}.path[hidden]{display:block}.toolbar{display:none}section.card{break-inside:avoid}main{max-width:none}}
+</style></head><body><main>
+<header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
+<p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
+<p class="muted">本版提供收益自相关、厚尾和波动聚集的描述性诊断，尚未完成显著性检验，也不把计算结果自动判为“复现成功”。</p></header>
+<div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
+{% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
+<span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
+{% if config.sampling == 'observations' %}<div class="notice">这是按观测序号分析：假定输入已经按 {{ config.observation_unit }} 排齐。首版没有交易日历校验，无法识别漏掉的交易日；lag 不表示固定日历时长。</div>{% endif %}
+{% if config.price_type == 'unspecified' %}<div class="notice">尚未声明价格类型。正式比较时请注明成交价、中间价或复权收盘价，以免把不同口径混在一起。</div>{% endif %}
+{% for g in groups %}<article class="path" id="{{ g.id }}" {% if not loop.first %}hidden{% endif %}>
+<h2>{{ g.asset_id }} · {{ g.path_id }}</h2><p class="muted">{{ g.quality.start }} — {{ g.quality.end }}</p>
+<div class="metrics"><div class="metric"><small>有效收益数</small><div class="value">{{ g.distribution.n }}</div></div><div class="metric"><small>修正超额峰度</small><div class="value">{{ g.distribution.excess_kurtosis|number }}</div></div><div class="metric"><small>真实 / 沿用形成的零收益比例</small><div class="value">{% if g.distribution.zero_fraction is not none %}{{ (g.distribution.zero_fraction * 100)|number }}%{% else %}不可计算{% endif %}</div></div></div>
+{% for warning in g.warnings %}<div class="notice">{{ warning }}</div>{% endfor %}
+<section class="card"><h2>1. 价格怎样变化？</h2><p>上图是价格，下图是每个采样区间的收益。价格的长期漂移与短期跳动，需要分开看；收益图则帮助定位平静和剧烈变化的时段。</p>
+<img src="{{ g.images.timeline }}" alt="{{ g.asset_id }} {{ g.path_id }} 的价格和收益时间序列"><p class="muted">保留缺失与交易时段断点；没有用未来价格补齐过去。</p></section>
+<section class="card"><h2>2. 收益主要集中在哪里？</h2><p>这条曲线描述本路径收益分布，没有混入其他路径，也没有平均不同路径的曲线。</p>
+<img src="{{ g.images.density }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益概率密度图">
+{% if g.distribution.excess_kurtosis is not none %}<p>修正超额峰度为 <strong>{{ g.distribution.excess_kurtosis|number }}</strong>，高斯分布的基准为 0。正值是厚尾的线索，但不能单凭这一数值或钟形外观，判断极端变化是否稳定出现。</p>{% else %}<p>{{ g.distribution.reason }}</p>{% endif %}
+{% if g.density.status != 'computed' %}<p class="muted">未生成平滑密度：{{ g.density.reason }}</p>{% else %}<p class="muted">使用全体有效收益，Scott 带宽 KDE；平滑会影响视觉形状，峰度直接从样本计算。</p>{% endif %}</section>
+<section class="card"><h2>3. 涨跌方向与波动大小，会持续吗？</h2><p>左图看收益的线性相关；中、右图分别看绝对收益和平方收益，用于观察波动大小是否持续。三图纵轴相同，便于比较相关强弱；横轴表示间隔，lag 0 没有画出。</p>
+<img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益、绝对收益和平方收益自相关">
+<p class="muted">只比较同一交易时段内的观测，保留缺口占用的时间。少于 {{ config.min_pairs }} 对观测的位置留空。本版没有置信区间，因此不自动把正相关称为显著聚集或长记忆。</p>
+{% for name, a in g.acf.items() %}{% if a.status != 'computed' %}<p class="muted">{{ name }}：{{ a.reason }}</p>{% endif %}{% endfor %}</section>
+<details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
+<tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
+<tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>
+{% for threshold, tail in g.distribution.tail_counts.items() %}<tr><td>超过 {{ threshold }} 个本路径标准差</td><td>{{ tail.count }} 次 / {{ g.distribution.n }} 条收益</td></tr>{% endfor %}
+</table></div><p class="muted">ACF 使用同一路径全体有效观测的均值和固定平方偏差和，保留原网格与 session 边界。完整单段时与常见 adjusted=False 定义一致；有缺口时另报告每个 lag 的配对数。精确数值在 acf.csv 和 results.json 中。</p></details>
+</article>{% endfor %}
+<details><summary>11 项事实的实现范围</summary><table><tr><th>事实</th><th>当前状态</th></tr>{% for item in result.coverage %}<tr><td>{{ item.fact_id }}. {{ item.name }}</td><td>{% if item.status == 'descriptive_only' %}已提供描述诊断，尚无正式检验{% else %}尚未实现{% endif %}</td></tr>{% endfor %}</table></details>
+<details><summary>数据与版本记录</summary><p>输入：{{ result.provenance.input_name }}；库版本：{{ result.provenance.package_version }}。</p><p>输入 SHA256：<code>{{ result.provenance.input_sha256 }}</code></p><p>程序与模板 SHA256：<code>{{ result.provenance.source_sha256 }}</code></p><p>时间均显示为 UTC；按日期分段时使用 {{ config.timezone or 'UTC' }}。同目录的 results.json 保存完整配置和软件版本，summary.csv 保存逐路径摘要。HTML 中已嵌入全部图片，可单独打开。</p></details>
+<footer>这是描述性研究报告，不代表对任何市场事实的统一通过/失败判断。生成时间（UTC）：{{ result.created_at }}</footer>
+</main><script>
+document.getElementById('path-select').addEventListener('change',function(){document.querySelectorAll('.path').forEach(function(p){p.hidden=p.id!==this.value},this)});
+</script></body></html>

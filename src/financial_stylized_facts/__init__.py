@@ -1,3 +1,3 @@
-"""Financial stylized facts analysis library (initial scaffold)."""
+"""Descriptive financial stylized-facts diagnostics."""
 
-__version__ = "0.0.0.dev0"
+__version__ = "0.1.0.dev0"

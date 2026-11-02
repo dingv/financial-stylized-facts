@@ -19,7 +19,7 @@ cd /home/dingwei/financial-stylized-facts
 
 ## 环境里有什么
 
-NumPy、SciPy、Pandas 用于数值和数据处理，Matplotlib 用于画图，statsmodels 用于统计交叉验证，Jinja2 用于后续报告模板，pytest 用于测试。当前 Python 包仍是骨架，环境可用不代表评估功能已经实现。
+NumPy、SciPy、Pandas 用于数值和数据处理，Matplotlib 用于画图，statsmodels 用于统计交叉验证，Jinja2 用于报告模板，pytest 用于测试。当前 Python 包已提供基础分布、ACF 与 HTML 报告；完整 11 项评估仍在开发。
 
 `environment.yml` 固定主要版本系列；`environments/linux-64.explicit.txt` 保存本次安装的确切包构建和下载校验信息。前者便于维护，后者用于 Linux x86-64 上重建同一组包。此环境不包含 GPU 计算依赖，也未安装后续可选的 GARCH 包 arch。
 

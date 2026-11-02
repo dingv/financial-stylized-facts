@@ -1,10 +1,10 @@
-# 统计实现约定（设计稿，尚未实现）
+# 统计实现约定
 
-本文件提出本库的首版算法与数据约定，不代表对任何论文实现细节的还原。实现时逐项用手算、性质测试和成熟函数交叉校验；本文不列出尚未核实的统一阈值。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF 和报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
-输入分为价格与已计算收益两类，禁止根据数值自动猜测。价格要求有限且大于零；对数收益要求有限，缺失单独标记。字段至少包括 timestamp、asset_id、value；多路径必须有 path_id。volume 必须注明含义、单位与是区间量还是累计量。
+当前只接受价格 CSV：必需字段 timestamp、price，可选 asset_id、path_id、session_id。价格要求有限且大于零，无效行直接报错；不静默删除。缺省标识为 series、observed。计划增加明确的已计算收益接口与 volume 字段，不根据数值猜测输入类别；未来 volume 必须注明含义、单位与区间量/累计量。
 
 时间必须附时区或由配置指定；同时间多成交需要稳定顺序字段，否则按声明的输入顺序处理并披露。默认不将不同 session、资产、路径拼接成一条序列。
 
@@ -18,7 +18,7 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 矩估计定义 m_j = mean((r-mean(r))^j)，未修正超额峰度 g2=m4/m2²-3。主报告可以使用小样本修正版，必须同时标注估计器和 n；n<4 或方差为零则不可计算。小样本修正不保证消除序列相关导致的偏差。对照 [SciPy kurtosis](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kurtosis.html) 的 fisher=True、bias=False。
 
-附录中对每条路径单独构造 z=(r-mean(r))/std(r,ddof=0)，绘制 P(|z|>x)、左右尾和 QQ 图；零尾概率留空，附超过阈值的实际次数。高斯参照为 2*sf(x)。超额峰度和有限阈值超额概率均不等于证明数学意义的幂律尾。
+当前对每条路径构造 z=(r-mean(r))/std(r,ddof=0)，导出 |z|>2、3、4 的次数及经验比例。计划增加 P(|z|>x)、左右尾和 QQ 图；对数坐标上的零尾概率应留空。高斯参照为 2*sf(x)。超额峰度和有限阈值超额概率均不等于证明数学意义的幂律尾。主峰度采用 SciPy fisher=True、bias=False，同时输出未修正超额峰度及未修正 Pearson 峰度；KDE 使用全样本 Scott 带宽，默认不加高斯曲线。
 
 默认不自动报告尾指数。后续尾指数模块需有阈值敏感性、尾部有效样本量、估计区间、拟合优度及替代分布比较，不能只看 log-log R²。
 
@@ -26,13 +26,15 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 完整等距序列采用 rho(k)=sum_{t=k}^{n-1}[(x_t-xbar)(x_{t-k}-xbar)] / sum_{t=0}^{n-1}(x_t-xbar)²。分别对 r、|r|、r² 去均值。该定义可对照 [statsmodels ACF](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html) 的 adjusted=False。
 
-存在缺口时不允许 dropna 后压缩时间再算 ACF。首版应按连续区段处理或明确返回需要预处理；若后续增加带掩码估计，须单独命名估计器，报告每个 lag 的有效配对数，不能假装与完整序列公式相同。
+存在缺口时不允许 dropna 后压缩时间再算 ACF。当前实现的估计器命名为 `session_masked_fixed_denominator`：在同一资产/路径内，以全体有效 x 的均值为 xbar，分母 D 为全体有效平方偏差和；分子只累加同一 session 内、原网格相距 k 且两端均有效的乘积。每个 lag 另输出有效配对数 N(k)，分子不按 N(k) 重新缩放。内部缺口不会改变 lag 长度；缺口两侧若恰好相距 k，则属于该 lag 的有效端点配对，不能解释成中间路径连续。
+
+完整单段时这等于 adjusted=False ACF；多 session 或缺失时，配对损失会使估计幅度受覆盖率影响，因此不能和完整序列无条件比较。均值为全路径均值，不是分时段去均值，日历分段仍可能贡献相关性。默认 N(k)<20 的点输出 null，这只是展示门槛，不是统计显著性标准。FFT 计算分子与掩码配对数；通过显式手算缺口和 session 样例验证。零方差与样本不足返回原因，lag 0 不在正文图中绘制。
 
 白噪声的 ±1.96/sqrt(n) 只能标为独立零相关近似参照，不称为所有统计量通用的置信区间。bootstrap 需保持路径与 session 边界，并明确重采样单位、区块长度和随机种子。分布区间与零假设显著性检验是两类任务，不能把普通 block bootstrap 当作已施加零相关零假设。
 
 收益、波动的短期相关和绝对收益 ACF 的慢衰减分开解释。季节性或状态切换可能贡献相关性，提供显式季节性对照；不以自动去均值方式隐去待解释现象。
 
-## 其他模块的首版算法范围
+## 其他模块的候选算法（均尚未实现）
 
 - 涨跌不对称：正负尾的分位数与超额概率、偏度；连续上涨/下跌段的累计对数收益分布单列，规则明确零收益是续段还是断段。首达时间留作扩展，不能与偏度混称同一检验。
 - 聚合高斯化：预先声明尺度列表，在每个尺度独立标准化，输出峰度、QQ 偏离及样本数。仅日内数据时，不能跨闭市拼接累计收益。不能只因大尺度样本少、检验不显著就称高斯化。
@@ -44,7 +46,7 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 ## 结果与验证
 
-结果结构包含：fact_id、asset_id、path_id、status、reason、estimator、parameters、sample_count、pair_counts、sampling、statistics、uncertainty、figure_paths、provenance。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。
+当前结果 schema_version=0.1。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures。指标内保存 status、reason、estimator、n 和 uncertainty；ACF 另有 lags、values、pair_counts。coverage 的第 1、2、6 项标 descriptive_only，其他标 not_implemented；不虚构指标结果。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
