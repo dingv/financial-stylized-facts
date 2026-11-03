@@ -95,7 +95,8 @@ def test_regime_mixture_does_not_automatically_become_long_memory():
     p = result["volatility_persistence"]
     assert p["full"]["values"][100] > .2
     assert all(abs(b["acf"]["values"][100]) < .1 for b in p["blocks"])
-    assert p["long_memory_test"]["status"] == "not_implemented"
+    assert p["long_memory_test"]["status"] == "computed"
+    assert p["long_memory_test"]["verified_long_memory"] is False
     assert [b["acf"]["n"] for b in p["blocks"]] == [4000]*4
 
 

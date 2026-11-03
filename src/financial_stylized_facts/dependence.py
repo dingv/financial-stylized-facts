@@ -4,6 +4,7 @@ from scipy.signal import correlate
 
 from .diagnostics import _arrays
 from .statistics import autocorrelation
+from .long_memory import long_memory_diagnostics
 
 
 def lagged_volatility_correlation(segments, max_lag=30, min_pairs=20, proxy="squared"):
@@ -87,5 +88,5 @@ def dependence_diagnostics(sampled, config):
                        "end": str(block["timestamp"].iloc[-1]) if len(block) else None, "acf": acf})
     persistence = {"status": full["status"], "reason": full["reason"], "full": full, "blocks": blocks,
                    "requested_max_lag": config.volatility_max_lag, "split_method": "chronological_equal_observation_slots",
-                   "long_memory_test": {"status": "not_implemented", "reason": "延长 ACF 与分段比较只是诊断，未做长记忆或幂律检验"}}
+                   "long_memory_test": long_memory_diagnostics(sampled,config)}
     return {"leverage": leverage, "volatility_persistence": persistence}

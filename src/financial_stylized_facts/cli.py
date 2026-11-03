@@ -76,6 +76,11 @@ def main(argv=None):
     analyze.add_argument("--first-passage-unit", choices=["sigma","log_return"], default="sigma")
     analyze.add_argument("--first-passage-min-starts", type=int, default=20)
     analyze.add_argument("--first-passage-max-work", type=int, default=20000000)
+    analyze.add_argument("--long-memory", choices=["on","off"], default="on")
+    analyze.add_argument("--long-memory-bandwidths", type=int, nargs="+", default=[0,10,20,40], help="修正 R/S 的短期依赖带宽；0 仅作独立序列参照")
+    analyze.add_argument("--long-memory-min-points", type=int, default=512)
+    analyze.add_argument("--long-memory-max-windows", type=int, default=128)
+    analyze.add_argument("--long-memory-max-work", type=int, default=20000000)
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     try:

@@ -49,8 +49,24 @@ class AnalysisConfig:
     first_passage_unit: str = "sigma"
     first_passage_min_starts: int = 20
     first_passage_max_work: int = 20000000
+    long_memory: str = "on"
+    long_memory_bandwidths: tuple[int, ...] = (0,10,20,40)
+    long_memory_min_points: int = 512
+    long_memory_max_windows: int = 128
+    long_memory_max_work: int = 20000000
 
     def validate(self):
+        if self.long_memory not in {"on","off"}:
+            raise ValueError("long_memory 必须为 on/off")
+        for name in ["long_memory_min_points","long_memory_max_windows","long_memory_max_work"]:
+            value = getattr(self,name)
+            if isinstance(value,bool) or not isinstance(value,Integral) or value<1:
+                raise ValueError(f"{name} 必须为正整数")
+        if self.long_memory_min_points<128 or self.long_memory_max_windows>2048:
+            raise ValueError("long_memory_min_points 至少 128，窗口数上限不能超过 2048")
+        bands = self.long_memory_bandwidths
+        if not isinstance(bands,(list,tuple)) or not bands or len(bands)>6 or any(isinstance(q,bool) or not isinstance(q,Integral) or not 0<=q<=1000 for q in bands) or list(bands)!=sorted(set(bands)):
+            raise ValueError("long_memory_bandwidths 必须为严格递增的 0–1000 整数，最多 6 项")
         for name in ["first_passage_horizon", "first_passage_min_starts", "first_passage_max_work"]:
             if isinstance(getattr(self,name),bool) or not isinstance(getattr(self,name),Integral):
                 raise ValueError(f"{name} 必须为整数")

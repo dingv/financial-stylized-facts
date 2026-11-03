@@ -81,7 +81,17 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <img src="{{ g.images.persistence }}" alt="{{ g.asset_id }} {{ g.path_id }} 的较长范围 ACF 和分段对照">
 <p>如果只有全程相关明显，分段结果却不同，就需要检查波动状态变化等因素。即使较长滞后仍有正相关，也不能仅凭这张图认定存在长记忆或幂律衰减。</p>
 <details><summary>查看分段范围与样本数</summary><div class="table-wrap"><table><tr><th>段</th><th>开始 / 结束（UTC）</th><th>有效收益数</th><th>状态</th></tr>{% for b in g.volatility_persistence.blocks %}<tr><td>{{ b.block }}</td><td>{{ b.start or '无观测' }}<br>{{ b.end or '无观测' }}</td><td>{{ b.acf.n }}</td><td>{{ '已计算' if b.acf.status == 'computed' else b.acf.reason }}</td></tr>{% endfor %}</table></div>
-<p class="muted">按时间排序后的观测槽数等分，保留缺口；交易时段边界与分段边界不配对。各段独立去均值，较短分段和缺口会改变配对覆盖率。图中不删除负相关、不筛选正点拟合直线。详细配对数见 volatility_acf.csv。</p></details></section>
+<p class="muted">按时间排序后的观测槽数等分，保留缺口；交易时段边界与分段边界不配对。各段独立去均值，较短分段和缺口会改变配对覆盖率。图中不删除负相关、不筛选正点拟合直线。详细配对数见 volatility_acf.csv。</p></details>
+{% set lm = g.volatility_persistence.long_memory_test %}
+<h3>短期相关能解释这种持续性吗？</h3>
+<p>修正 R/S 对照观察绝对收益偏离其均值的累计幅度，并用不同带宽调整短期相关。每个连续片段分别检查全段、两个半段、四个四分段，既不跨缺口拼接，也不挑最显著的窗口。</p>
+{% if lm.status != 'computed' %}<p class="muted">{{ lm.reason }}</p>{% endif %}
+<p>这里的拒绝只针对所用带宽和渐近假设，并不是“长记忆已证实”。波动状态改变、极端值和没有被带宽覆盖的短期依赖也可能导致拒绝；带宽较大又可能掩盖长记忆。应一起看窗口与带宽的差别，不把检验计数当成市场的通过率。</p>
+<details><summary>查看窗口、带宽和检验数值</summary>
+<p>q 表示纳入短期依赖调整的基础间隔数；q=0 仅是独立序列参照，不作短期依赖检验。V 的未修正 95% 渐近参照区间约为 0.809–1.862。最后一列的 p 值已按本路径预设的 {{ lm.planned_family_size }} 个非零带宽组合做 Bonferroni 修正，包括样本不足的组合；没有对不同资产作联合修正。这不是有限样本精确检验。</p>
+<div class="table-wrap"><table><tr><th>片段 / 窗口</th><th>收益数</th><th>带宽 q</th><th>V</th><th>修正后 p / 状态</th></tr>
+{% for r in lm.rows %}<tr><td>{{ r.segment }} / {{ '全段' if r.partition == 1 else ('半段' if r.partition == 2 else '四分段') }} {{ r.window }}</td><td>{{ r.n }}</td><td>{{ r.bandwidth }}</td><td>{{ r.statistic|number }}</td><td>{% if r.status != 'computed' %}{{ r.reason }}{% elif r.reference_only %}独立序列参照{% elif r.p_is_numerical_upper_bound %}≤ {{ r.family_adjusted_p }}（数值上界）{% else %}{{ r.family_adjusted_p|number }}{% endif %}</td></tr>{% endfor %}</table></div>
+<p class="muted">每窗口至少 {{ config.long_memory_min_points }} 条收益且不少于 20(q+1)；这是项目门槛，不保证渐近近似准确。数据应满足稳定均值、适当矩与弱依赖条件。原始 p、窗口日期、不可计算原因见 long_memory.csv。</p></details></section>
 <section class="card"><h2>9. 交易更活跃时，价格变化更大吗？</h2>{{ observation(g, '10') }}
 {% if g.volume_volatility.status == 'not_applicable' %}<p class="muted">价格条数或报价次数不能代替成交量。</p>
 {% else %}<p>把同一条路径的区间按成交量从低到高分组。每个点表示一组区间的平均成交量与平均绝对收益；曲线向上，说明量较大的区间往往也有更大的价格变化。</p>

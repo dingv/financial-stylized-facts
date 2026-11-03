@@ -466,13 +466,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.10", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.11", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_with_optional_short_memory_test" if i==8 else "descriptive_only"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -489,6 +489,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     uncertainty_rows = []
     dependence_rows = []
     first_passage_rows = []
+    long_memory_rows = []
     observation_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
@@ -514,6 +515,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
             observation_rows.append({"asset_id": asset, "path_id": path, **finding,
                                      "references": json.dumps(finding["references"], ensure_ascii=False)})
         result["groups"].append(item)
+        memory = diagnostics["volatility_persistence"]["long_memory_test"]
+        for row in memory["rows"] or [{"status":memory["status"],"reason":memory["reason"]}]:
+            long_memory_rows.append({"asset_id":asset,"path_id":path,"planned_family_size":memory["planned_family_size"],
+                "bandwidth_seconds":row.get("bandwidth",0)*pd.Timedelta(config.frequency).total_seconds() if config.sampling=="grid" and "bandwidth" in row else None,
+                "observation_unit":config.observation_unit,**row})
         warnings = []
         if metrics["n"] < 100:
             warnings.append("有效收益少于 100 条，仅作小样本描述；100 是本项目的提示阈值，不是统计保证。")
@@ -601,6 +607,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     pd.DataFrame(uncertainty_rows, columns=["asset_id", "path_id", "block_length", "metric", "estimate", "lower", "upper", "bootstrap_se", "confidence_level", "valid_reps", "seed", "status", "reason"]).to_csv(output_dir/"uncertainty.csv", index=False)
     pd.DataFrame(dependence_rows, columns=["asset_id", "path_id", "family", "proxy", "lag", "bandwidth", "lag_seconds", "bandwidth_seconds", "base_observations_per_slot", "observation_unit", "estimate", "pair_count", "standard_error", "lower", "upper", "familywise_lower", "familywise_upper", "status", "reason"]).to_csv(output_dir/"dependence_intervals.csv", index=False)
     pd.DataFrame(first_passage_rows,columns=["asset_id","path_id","direction","configured_threshold","threshold_unit","log_threshold","all_starts","full_horizon_starts","configured_horizon","horizon","elapsed_seconds","observation_unit","full_hits","full_cdf","observed_hits","early_censored","all_start_lower_bound","all_start_upper_bound"]).to_csv(output_dir/"first_passage.csv",index=False)
+    pd.DataFrame(long_memory_rows,columns=["asset_id","path_id","segment","session_id","partition","window","start","end","n","bandwidth","bandwidth_seconds","observation_unit","required_n","reference_only","statistic","asymptotic_p","p_is_numerical_upper_bound","planned_family_size","family_adjusted_p","reject_short_memory_family","position","status","reason"]).to_csv(output_dir/"long_memory.csv",index=False)
     pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
     pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)

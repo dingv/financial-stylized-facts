@@ -56,11 +56,11 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 长范围波动相关沿用 session_masked_fixed_denominator 估计器，主序列为 |r|，默认最大 lag=300，可设 1–2000。按时间排序后的观测槽将整条路径等分为默认 4 个诊断段（可设 2–8），保留缺口，每段内仍按 session 分隔；每段各自估计均值、固定分母和 ACF。边界前一槽到边界后一槽产生的基础收益保留并归到结束时刻，但 ACF 端点不跨诊断段。等槽数不是等日历跨度，也不是自动去除日内季节性。输出分段起止时间、有效样本量和每 lag 配对数，样本不足不画曲线。
 
-该对照可以识别状态混合对全程相关的贡献，但分段后配对减少与均值重估也影响曲线，因此不单凭“分段后相关下降”确定机制。保留负点、不选择正点作 log-log 拟合；long_memory_test 状态固定为 not_implemented。较长范围相关仍可能来自短记忆、结构变化或季节性，不能代替幂律或长记忆检验。新增测试含无杠杆的 iid、已知前向波动响应、倒数报价反号，以及“全程正相关但分段接近零”的方差状态混合。
+该对照帮助检查状态混合对全程相关的贡献，但分段后配对减少与均值重估也影响曲线，因此不单凭“分段后相关下降”确定机制。保留负点、不选择正点作 log-log 拟合。0.11 的 long_memory_test 另提供 [Lo 修正 R/S](long-memory.md)，在预设连续窗口与带宽上作条件性短期依赖检验；不自动宣称长记忆。较长范围相关仍可能来自短记忆、结构变化或季节性。测试含无杠杆的 iid、已知前向波动响应、倒数报价反号，以及“全程正相关但分段接近零”的方差状态混合。
 
 ## 结果与验证
 
-当前结果 schema_version=0.10。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、first_passage、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、first_passage.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.11。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、first_passage、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 第 8 项标 descriptive_with_optional_short_memory_test，其余为 descriptive_only；这表示模块范围，不代表该路径已经通过任何检验。每路径条件厚尾另记录是否启用、依赖缺失和拟合状态。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、first_passage.csv、long_memory.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 

@@ -48,7 +48,11 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert len(pd.read_csv(out / "scales.csv")) == 8
     assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
     assert all(x["status"] == "descriptive_only" for x in result["coverage"][:6])
-    assert result["coverage"][7]["status"] == "descriptive_only"
+    assert result["coverage"][7]["status"] == "descriptive_with_optional_short_memory_test"
+    lm = pd.read_csv(out/"long_memory.csv")
+    assert lm["statistic"].isna().all()
+    assert lm["status"].eq("insufficient_data").all()
+    assert "短期相关能解释这种持续性吗" in text
     assert result["coverage"][8]["status"] == "descriptive_only"
     assert len(pd.read_csv(out / "leverage.csv")) > 0
     assert len(pd.read_csv(out / "volatility_acf.csv")) > 0
