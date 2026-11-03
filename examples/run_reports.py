@@ -70,7 +70,7 @@ def run(dataset, output, data_dir=DATA):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", choices=["AAPL", "MSFT", "EURUSD", "USDJPY", "all"], default="AAPL")
+    parser.add_argument("--dataset", choices=[*json.loads((DATA / "manifest.json").read_text(encoding="utf-8"))["datasets"], "all"], default="AAPL")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:

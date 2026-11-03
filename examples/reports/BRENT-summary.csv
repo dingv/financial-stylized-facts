@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+BRENT,observed,4047,4047,1,0,0,0,4046,2010-01-04 00:00:00+00:00,2025-12-31 00:00:00+00:00,-6.265086319786448e-05,0.026583227043785948,0.012110726643598616,111.81099536134231,computed,,-2.8184124089825517,0.008897676717745922

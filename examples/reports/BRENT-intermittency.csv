@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+BRENT,observed,10,404,4040,6,41,2.9057071960297773,0.9007444168734493,1.1452520728681235,0.001,0.003,True,computed,
+BRENT,observed,30,134,4020,26,41,6.449477351916377,0.7975426370805061,1.2890152209792771,0.001,0.003,True,computed,
+BRENT,observed,60,67,4020,26,41,9.40650406504065,0.6910569105691058,1.3843311160384333,0.001,0.003,True,computed,

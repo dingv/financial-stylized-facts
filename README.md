@@ -2,7 +2,7 @@
 
 **从市场价格与成交量生成金融典型事实的图文报告。**
 
-面向股票、外汇及其他金融时间序列，覆盖 [Cont (2001)](https://doi.org/10.1080/713665670) 总结的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
+面向股票、外汇、加密资产、商品及其他金融时间序列，覆盖 [Cont (2001)](https://doi.org/10.1080/713665670) 总结的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
 
 - **逐资产、逐路径分析**：分别展示收益分布、波动聚集、自相关和多尺度变化。
 - **结果优先的报告**：逐项结论、关键数值和图形证据一起展示；HTML 离线可读，JSON、CSV 和 PNG 可继续用于研究。
@@ -17,6 +17,10 @@
 | --- | --- | --- | --- |
 | AAPL、MSFT 日频股票 | 2000–2013 | Quandl WIKI，经 Bokeh 数据集分发 | [AAPL](examples/reports/AAPL.html) · [MSFT](examples/reports/MSFT.html) |
 | EUR/USD、USD/JPY 日频汇率 | 2010–2025 | Federal Reserve H.10 | [EUR/USD](examples/reports/EURUSD.html) · [USD/JPY](examples/reports/USDJPY.html) |
+| BTC、ETH 日频参考价与现货成交额 | 2020–2025 | Coin Metrics | [BTC](examples/reports/BTC.html) · [ETH](examples/reports/ETH.html) |
+| Brent 原油、Henry Hub 天然气日频现货价 | 2010–2025 | U.S. EIA | [Brent](examples/reports/BRENT.html) · [Henry Hub](examples/reports/HENRYHUB.html) |
+
+数据来源和各样本许可见[数据说明](data/README.md)。
 
 **AAPL：价格、收益与波动聚集**
 
@@ -36,7 +40,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为四组真实数据分别生成报告。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为八组真实数据分别生成报告。
 
 分析自己的分钟价格：
 
@@ -79,7 +83,7 @@ result = analyze_csv(
 ## 文档
 
 - [使用指南](docs/usage.md)：CSV 输入、命令行与报告阅读。
-- [数据指南](docs/data-guide.md)：股票、FRED、EBS 数据接入。
+- [数据指南](docs/data-guide.md)：股票、汇率、加密资产、能源及 EBS 数据接入。
 - [通用教学文档](docs/learning-guide.md)：理解 11 项指标、计算过程与评估结论。
 - [统计方法](docs/methods.md)：公式与实现细节。
 - [参考文献](docs/references.md)：方法来源与数值计算参考。

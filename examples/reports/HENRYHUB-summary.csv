@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+HENRYHUB,observed,4035,4035,1,0,0,0,4034,2010-01-04 00:00:00+00:00,2025-12-31 00:00:00+00:00,-0.00010420270713979095,0.06909189844364465,0.11551809618244918,119.98224203022201,computed,,0.02005004746030549,0.01264253842340109

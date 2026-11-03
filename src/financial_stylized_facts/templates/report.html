@@ -58,7 +58,8 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 {% elif n == '11' %}<img src="{{ g.images.timescale }}" alt="{{ g.asset_id }} {{ g.path_id }} 粗细波动先后关系"><p class="caption">一步为 {{ config.coarse_factor }} 个基础间隔。方向差 = 细在前相关 − 粗在前相关。</p>
 {% endif %}</section>{% endfor %}
 </article>{% endfor %}
-<footer>Financial Stylized Facts {{ result.provenance.package_version }} · 评估规则 v{{ result.assessment_rule_version }}<br>
+<footer>{% if result.data_source %}<p>数据来源：{{ result.data_source.source_name }}{% if result.data_source.attribution %}<br>{{ result.data_source.attribution }}{% endif %}{% if result.data_source.source_url %}<br>{{ result.data_source.source_url }}{% endif %}{% if result.data_source.data_license %}<br>数据许可：{{ result.data_source.data_license }}{% endif %}{% if result.data_source.license_url %} · {{ result.data_source.license_url }}{% endif %}</p>{% endif %}
+Financial Stylized Facts {{ result.provenance.package_version }} · 评估规则 v{{ result.assessment_rule_version }}<br>
 数值与配置：results.json · 逐项结论：assessment.csv · <a href="https://github.com/dingv/financial-stylized-facts/blob/main/docs/learning-guide.md">指标与结果解读</a><br>
 生成时间（UTC）：{{ result.created_at }} · 输入：{{ result.provenance.input_name }}<br>SHA256：{{ result.provenance.input_sha256 }}</footer>
 </main><script>

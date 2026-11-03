@@ -26,6 +26,15 @@ fsf analyze-prepared /tmp/aapl-prepared --output /tmp/aapl-report
 
 明确价格是否复权、量的单位与复权方式。价格调整并不代表成交量也已调整。日频转换用 UTC 零点作日期标签，并不声称这是实际收盘时刻。
 
+## 随附加密资产与能源数据
+
+```bash
+python examples/run_reports.py --dataset BTC --output /tmp/btc-report
+python examples/run_reports.py --dataset BRENT --output /tmp/brent-report
+```
+
+BTC、ETH 是 UTC 日末参考价及同日美元现货成交额；Brent 和 Henry Hub 是无成交量的现货报价。来源、缺失值、数据许可及离线重建方法见[数据说明](../data/README.md)。它们使用与股票、汇率相同的报告接口与评估参数。
+
 ## FRED 汇率
 
 ```bash

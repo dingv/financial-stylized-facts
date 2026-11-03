@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+BTC,observed,10,219,2190,1,22,1.360300250208507,0.9036697247706422,1.1776480400333613,0.004,0.012,True,computed,
+BTC,observed,30,73,2190,1,22,1.630050505050505,0.7083333333333334,1.3535353535353536,0.003,0.009000000000000001,True,computed,
+BTC,observed,60,36,2160,31,22,2.3636363636363633,0.5870129870129871,1.5220779220779217,0.001,0.003,True,computed,

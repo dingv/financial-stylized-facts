@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+HENRYHUB,observed,10,403,4030,4,40,2.5069651741293533,0.9029850746268655,1.1536069651741292,0.001,0.003,True,computed,
+HENRYHUB,observed,30,134,4020,14,40,2.9233082706766926,0.8075187969924813,1.2609022556390976,0.001,0.003,True,computed,
+HENRYHUB,observed,60,67,4020,14,40,3.302272727272727,0.7136363636363638,1.3734848484848488,0.001,0.003,True,computed,

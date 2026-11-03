@@ -1,0 +1,13 @@
+asset_id,path_id,period,status,reason,start_lag,end_lag,minimum_pairs,positive_fraction,train_end_lag,preferred,exposure_min,exposure_max,slow_power_pattern,model,kind,amplitude,shape,parameter,anchor_lag,sse,rmse,r_squared,boundary,heldout_rmse
+ETH,observed,full,computed,,1,100,500,1.0,66.0,undetermined,0.9543587403012324,0.9995435874030123,False,power,power,0.18604513514469967,0.3413814627731715,beta,1.0,0.057483427795230364,0.023975701823978034,0.5194367784040574,False,0.020725394566455155
+ETH,observed,full,computed,,1,100,500,1.0,66.0,undetermined,0.9543587403012324,0.9995435874030123,False,exponential,exponential,0.10918308763247835,0.015528917439989597,lambda,1.0,0.06532696005325701,0.025559139276050948,0.45386460786412064,False,0.02662845605577579
+ETH,observed,full,computed,,5,100,500,1.0,68.0,undetermined,0.9543587403012324,0.9977179370150616,False,power,power,0.12050741965887063,0.403378067928204,beta,5.0,0.055008822065609336,0.023937597272563314,0.3776376944621618,False,0.02088329356626388
+ETH,observed,full,computed,,5,100,500,1.0,68.0,undetermined,0.9543587403012324,0.9977179370150616,False,exponential,exponential,0.09055216457989886,0.012626432837094758,lambda,5.0,0.05782292131790837,0.024542251263108394,0.3457993595750005,False,0.024819338005065156
+ETH,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,

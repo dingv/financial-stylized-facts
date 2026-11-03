@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+BRENT,observed,1,computed,,199,0,0.005,0.005,0.47,True,excess_kurtosis,2.344688825257344,-0.16022935291367274,0.13318797721666958,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+BRENT,observed,1,computed,,199,0,0.005,0.005,0.47,True,tail_probability_3sigma,0.00950950950950951,0.0012387387387387389,0.004004004004004004,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+BRENT,observed,1,computed,,199,0,0.005,0.005,0.47,True,residual_q10,12.508441399337762,3.036029882796206,18.755842507057412,0.235,0.235,0.235,"[0.17448182059548842, 0.2960229266464366]",46
+BRENT,observed,1,computed,,199,0,0.005,0.005,0.47,True,squared_residual_q10,6.531810654797044,3.080832077560129,18.872945885628276,0.705,0.705,0.705,"[0.6348421410241698, 0.7660149206510349]",140

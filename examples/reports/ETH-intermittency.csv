@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+ETH,observed,10,219,2190,1,22,1.5429524603836524,0.9036697247706419,1.1776480400333613,0.001,0.003,True,computed,
+ETH,observed,30,73,2190,1,22,2.090909090909091,0.7958964646464648,1.3535353535353536,0.001,0.003,True,computed,
+ETH,observed,60,36,2160,31,22,2.4571428571428564,0.5870129870129871,1.5220779220779217,0.001,0.003,True,computed,

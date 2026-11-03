@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+BTC,observed,2192,2192,1,0,0,0,2191,2020-01-01 00:00:00+00:00,2025-12-31 00:00:00+00:00,0.0011418708497399515,0.03234384481303313,0.0,23.054121155471634,computed,,-1.4069543537076397,0.015518028297581013
