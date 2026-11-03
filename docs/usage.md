@@ -68,6 +68,8 @@ fsf analyze prices.csv --output /tmp/multiscale-report \
 | --- | --- |
 | `index.html` | 可独立复制、离线打开的图文报告 |
 | `assessment.csv` | 与 HTML 一致的逐项结论、证据类型、关键数值和规则版本 |
+| `volume_lag.csv` | 成交量与前后绝对／平方收益相关、配对数及 lag 单位 |
+| `volume_lag_intervals.csv` | 量价滞后的 HAC 单项与家族校正区间 |
 | `summary.csv` | 样本量、峰度、均值、标准差等摘要 |
 | `observations.csv` | 保留的详细观察，兼容原有分析流程 |
 | `results.json` | 完整统计、配置、版本和输入哈希 |
@@ -85,7 +87,7 @@ for group in result["groups"]:
               fact["label"], fact["evidence_level"], fact["metrics"])
 ```
 
-每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.15 增加间歇性置换检验、条件尾部模拟参照和衰减曲线比较；评估规则版本为 2。已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
+每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.16、评估规则版本 3 增加不对称的 `asymmetry_evidence`、`direction`、`classical_alignment`、`directional_basis` 字段，以及独立的量价滞后结果。与经典方向相反的有支持结果使用 `conclusion=opposite_direction`。已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
 
 三项证据输出：`intermittency.csv`（各窗口 Fano、校正 p、覆盖）、`conditional_inference.csv`（各段残差模拟参照和模型检查）、`decay_models.csv`（各时间段/范围的两模型参数、误差和偏好）。
 

@@ -37,7 +37,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
     assert json.loads(numerical)["coverage"][6]["status"] == "parametric_bootstrap_test"
-    assert result["schema_version"] == "0.15"
+    assert result["schema_version"] == "0.16"
     assert len(pd.read_csv(out / "summary.csv")) == 2
     assessments = pd.read_csv(out / "assessment.csv", keep_default_na=False)
     assert len(assessments) == 22
@@ -49,6 +49,10 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
             assert json.loads(row.metrics) == a["metrics"]
             assert row.summary == a["summary"] and a["summary"] in text
             assert a["label"] in text
+            if a['fact_id'] in (3,11):
+                for key in ['asymmetry_evidence','direction','classical_alignment','directional_basis']:
+                    assert row[key] == a[key]
+                assert a['classical_alignment_label'] in text
     assert all(a["conclusion"] != "supported" for a in result["groups"][0]["assessment"]["by_fact"].values())
     observations = pd.read_csv(out/"observations.csv")
     assert len(observations) == 22
@@ -117,8 +121,21 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert result["groups"][0]["intermittency"]["window"] == 4
     assert len(result["groups"][0]["volatility_persistence"]["blocks"]) == 3
     assert result["groups"][0]["volume_volatility"]["n"] == 60
+    lagged = result['groups'][0]['volume_lag']
+    exported = pd.read_csv(out/'volume_lag.csv')
+    assert len(exported) == 122 and exported.lag.min() == -30 and exported.lag.max() == 30
+    for row in lagged['rows']:
+        saved = exported[(exported.proxy==row['proxy']) & (exported.lag==row['lag'])].iloc[0]
+        assert saved.pair_count == row['pair_count']
+        assert saved.lag_seconds == row['lag']*60
+        if row['correlation'] is not None:
+            assert saved.correlation == pytest.approx(row['correlation'])
+    intervals = pd.read_csv(out/'volume_lag_intervals.csv')
+    assert len(intervals) == lagged['inference']['family_size']
+    assert set(intervals.proxy) == {'absolute','squared'}
+    assert '正 lag：成交量在前' in (out/'index.html').read_text()
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
-    assert (out/"index.html").read_text().count("data:image/png;base64,") == 13
+    assert (out/"index.html").read_text().count("data:image/png;base64,") == 14
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
 
 

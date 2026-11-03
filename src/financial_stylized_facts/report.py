@@ -96,6 +96,11 @@ def _inference_band(ax, inference, family, proxy, factor, color="#2563a6"):
         ax.fill_between(x, low, high, color=color, alpha=.14)
         ax.errorbar(x, centers, yerr=[centers-low, np.asarray(high)-centers],
                     fmt="none", color=color, alpha=.35, linewidth=.7)
+    for row in rows:
+        if row["lag"] == 0 and row["status"] == "computed":
+            ax.errorbar([0], [row["estimate"]],
+                        yerr=[[row["estimate"]-row["lower"]], [row["upper"]-row["estimate"]]],
+                        fmt="o", markersize=3, color=color, alpha=.6, linewidth=.7)
     ax.text(.98, .98, f"95% pointwise HAC (B={inference['plot_bandwidth']})",
             transform=ax.transAxes, ha="right", va="top", fontsize=7)
 
@@ -313,6 +318,30 @@ def _activity_plots(diagnostics, config, directory, group_id):
         paths["volume"] = f"figures/{group_id}-volume.png"
         embedded["volume"] = _save(fig, directory/paths["volume"])
 
+        lagged = diagnostics["volume_lag"]
+        fig = _figure(height=3.7)
+        axes = fig.subplots(1, 2)
+        if config.sampling == "grid":
+            seconds = pd.Timedelta(config.frequency).total_seconds()
+            divisor, unit = (3600, "hours") if seconds >= 3600 else (60, "min") if seconds >= 60 else (1, "seconds")
+            factor, xlabel = seconds/divisor, f"Lag ({unit})"
+        else:
+            factor, xlabel = 1, "Lag (observations)"
+        for ax, proxy, label, color in zip(axes, ["absolute", "squared"],
+                ["Volume / absolute return", "Volume / squared return"], ["#2563a6", "#c77d55"]):
+            points = [r for r in lagged["rows"] if r["proxy"] == proxy]
+            ax.plot([r["lag"]*factor for r in points],
+                    [np.nan if r["correlation"] is None else r["correlation"] for r in points], color=color)
+            _inference_band(ax, lagged["inference"], "volume_lag", proxy, factor, color)
+            if not any(r["correlation"] is not None for r in points):
+                ax.text(.5, .5, "No estimable lag correlations", transform=ax.transAxes, ha="center", fontsize=8)
+            ax.axhline(0, color="#9aa3ad", linewidth=.8)
+            ax.axvline(0, color="#9aa3ad", linewidth=.8, linestyle="--")
+            ax.set(xlabel=xlabel, ylabel="Correlation", title=label)
+            _style(ax)
+        paths["volume_lag"] = f"figures/{group_id}-volume-lag.png"
+        embedded["volume_lag"] = _save(fig, directory/paths["volume_lag"])
+
     fig = _figure(height=3.6)
     axes = fig.subplots(1, 2)
     estimate = diagnostics["timescale_asymmetry"]
@@ -515,6 +544,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
         diagnostics["tail_diagnostics"] = tail_diagnostics(sampled["log_return"])
         diagnostics.update(dependence_diagnostics(sampled, config))
         diagnostics.update(activity_diagnostics(sampled, config))
+        from .volume_lag import volume_lag_diagnostics
+        diagnostics["volume_lag"] = volume_lag_diagnostics(sampled, config)
         diagnostics["first_passage"] = first_passage_diagnostics(sampled, config)
         from .intermittency import intermittency_test
         diagnostics['intermittency']['inference'] = intermittency_test(sampled,config,str(asset)+"\0"+str(path))
@@ -537,7 +568,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.15", "assessment_rule_version": RULE_VERSION, "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.16", "assessment_rule_version": RULE_VERSION, "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
@@ -556,6 +587,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     views, summary_rows, acf_rows, scale_rows = [], [], [], []
     leverage_rows, persistence_rows = [], []
     volume_rows, timescale_rows = [], []
+    volume_lag_rows, volume_lag_interval_rows = [], []
     conditional_rows = []
     uncertainty_rows = []
     dependence_rows = []
@@ -643,6 +675,17 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
             volume_rows.append({"asset_id": asset, "path_id": path, "proxy": proxy, "unit": volume["unit"], **estimate})
         if not volume["correlations"]:
             volume_rows.append({"asset_id": asset, "path_id": path, "status": volume["status"]})
+        lagged = diagnostics["volume_lag"]
+        step_seconds = pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None
+        for destination, records in [(volume_lag_rows, lagged["rows"]),
+                                     (volume_lag_interval_rows, lagged["inference"]["rows"])]:
+            for row in records:
+                destination.append({"asset_id": asset, "path_id": path, "unit": volume["unit"],
+                    "lag_seconds": row["lag"]*step_seconds if step_seconds is not None else None,
+                    "observation_unit": config.observation_unit, **row})
+            if not records:
+                state = lagged if destination is volume_lag_rows else lagged["inference"]
+                destination.append({"asset_id": asset, "path_id": path, "status": state["status"], "reason": state["reason"]})
         asym = diagnostics["timescale_asymmetry"]
         for row in asym["differences"]:
             timescale_rows.append({"asset_id": asset, "path_id": path, "coarse_factor": asym["factor"],
@@ -710,6 +753,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     pd.DataFrame(observation_rows, columns=["asset_id", "path_id", "fact_id", "status", "text", "limitation", "references"]).to_csv(output_dir/"observations.csv", index=False)
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
     pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)
+    pd.DataFrame(volume_lag_rows, columns=["asset_id", "path_id", "proxy", "unit", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status", "reason"]).to_csv(output_dir/"volume_lag.csv", index=False)
+    pd.DataFrame(volume_lag_interval_rows, columns=["asset_id", "path_id", "proxy", "unit", "lag", "lag_seconds", "observation_unit", "bandwidth", "estimate", "pair_count", "standard_error", "lower", "upper", "familywise_lower", "familywise_upper", "status", "reason"]).to_csv(output_dir/"volume_lag_intervals.csv", index=False)
     pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
     pd.DataFrame(conditional_rows, columns=["asset_id", "path_id", "segment", "session_id", "start", "end", "n", "status", "reason", "n_evaluated", "optimizer_status", "raw_excess_kurtosis", "residual_excess_kurtosis", "mu", "omega", "alpha", "beta", "persistence", "flags"]).to_csv(output_dir/"conditional.csv", index=False)
     pd.DataFrame(uncertainty_rows, columns=["asset_id", "path_id", "block_length", "metric", "estimate", "lower", "upper", "bootstrap_se", "confidence_level", "valid_reps", "seed", "status", "reason"]).to_csv(output_dir/"uncertainty.csv", index=False)

@@ -26,13 +26,14 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 <h2>{{ g.asset_id }} · {{ g.path_id }}</h2><p class="muted">{{ g.range_label }}</p>
 <div class="metrics"><div class="metric"><small>有效收益数</small><div class="value">{{ g.distribution.n }}</div></div><div class="metric"><small>收益标准差</small><div class="value">{{ g.distribution.std|number }}</div></div><div class="metric"><small>超额峰度</small><div class="value">{{ g.distribution.excess_kurtosis|number }}</div></div></div>
 <section class="card"><h2>评估总览</h2><div class="table-wrap"><table><thead><tr><th>Stylized fact</th><th>本路径结论</th><th>关键结果</th></tr></thead><tbody>
-{% for n, a in g.assessment.by_fact.items() %}<tr><td><a href="#{{ g.id }}-fact-{{ n }}">{{ n }}. {{ a.name }}</a></td><td>{{ a.label }}{% if a.scope_note %}<br><span class="key">{{ a.scope_note }}</span>{% endif %}<br><span class="badge {{ a.evidence_level }}">{{ a.evidence_label }}</span></td><td>{% if a.metrics %}{% for m in a.metrics %}<span class="key">{{ m.label }}</span> {{ m.value|number }}{{ m.unit }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}{{ a.summary }}{% endif %}</td></tr>{% endfor %}
+{% for n, a in g.assessment.by_fact.items() %}<tr><td><a href="#{{ g.id }}-fact-{{ n }}">{{ n }}. {{ a.name }}</a></td><td>{{ a.label }}{% if a.classical_alignment_label is defined %}<br><span class="key">{{ a.classical_alignment_label }}</span>{% endif %}{% if a.scope_note %}<br><span class="key">{{ a.scope_note }}</span>{% endif %}<br><span class="badge {{ a.evidence_level }}">{{ a.evidence_label }}</span></td><td>{% if a.metrics %}{% for m in a.metrics %}<span class="key">{{ m.label }}</span> {{ m.value|number }}{{ m.unit }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}{{ a.summary }}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div><p class="caption">区间、模拟参照检验与模型比较分别标注。指标含义和判读规则见<a href="https://github.com/dingv/financial-stylized-facts/blob/main/docs/learning-guide.md">通用教学文档</a>。</p></section>
 {% for warning in g.warnings %}<div class="notice">{{ warning }}</div>{% endfor %}
 <section class="card"><h2>价格与收益</h2><img src="{{ g.images.timeline }}" alt="{{ g.asset_id }} {{ g.path_id }} 价格和收益时间序列"><p class="caption">上：价格。下：{{ clock_label }} 对数收益。</p></section>
 {% for n, a in g.assessment.by_fact.items() %}<section class="card" id="{{ g.id }}-fact-{{ n }}">
 <h2>{{ n }}. {{ a.name }}</h2><span class="badge {{ a.evidence_level }}">{{ a.label }} · {{ a.evidence_label }}</span>
 <p class="finding">{{ a.summary }}</p>
+{% if a.classical_alignment_label is defined %}<p><strong>{{ a.classical_alignment_label }}</strong></p>{% endif %}
 {% if a.metrics %}<div class="metrics">{% for m in a.metrics %}<div class="metric"><small>{{ m.label }}</small><div class="value">{{ m.value|number }}<small>{{ m.unit }}</small></div></div>{% endfor %}</div>{% endif %}
 {% for note in a.notes %}<div class="notice">{{ note }}</div>{% endfor %}
 {% if n == '1' %}<p class="caption">三类自相关曲线集中展示在<a href="#{{ g.id }}-fact-6">第 6 项</a>。相关检验范围为前 {{ g.dependence_uncertainty.max_lag }} 个滞后。</p>
@@ -52,7 +53,8 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 <img src="{{ g.images[s.figure_key] }}" alt="{{ g.asset_id }} {{ g.path_id }} 第 {{ s.segment }} 段 GARCH 前后分布与平方收益 ACF">{% endif %}{% endfor %}
 {% elif n == '8' %}<img src="{{ g.images.decay }}" alt="幂律和指数衰减比较"><p class="caption">原尺度拟合，包含负 ACF。虚线右侧为单独评估远端预测误差的滞后范围；图中曲线为全范围拟合。</p><img src="{{ g.images.persistence }}" alt="{{ g.asset_id }} {{ g.path_id }} 长范围与分段绝对收益 ACF"><p class="caption">左：全路径。右：{{ config.stability_blocks }} 个时间分段分别计算。</p>
 {% elif n == '9' %}<img src="{{ g.images.leverage }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益与前后波动相关"><p class="caption">正滞后表示收益在前、波动在后。</p>
-{% elif n == '10' %}{% if g.images.volume is defined %}<img src="{{ g.images.volume }}" alt="{{ g.asset_id }} {{ g.path_id }} 成交量分组与绝对收益"><p class="caption">成交量单位：{{ g.volume_volatility.unit }}。</p>{% endif %}
+{% elif n == '10' %}{% if g.images.volume is defined %}<img src="{{ g.images.volume }}" alt="{{ g.asset_id }} {{ g.path_id }} 成交量分组与绝对收益"><p class="caption">成交量单位：{{ g.volume_volatility.unit }}。上图保留同期关系。</p>{% endif %}
+{% if g.images.volume_lag is defined %}<h3>成交量与前后波动</h3><p>{{ a.lead_lag_summary }}</p>{% if a.lead_lag_reason %}<p class="caption">{{ a.lead_lag_reason }}</p>{% endif %}<img src="{{ g.images.volume_lag }}" alt="{{ g.asset_id }} {{ g.path_id }} 成交量与前后绝对收益和平方收益相关"><p class="caption">正 lag：成交量在前，波动在后；负 lag：波动在前，成交量在后；零：同一区间。阴影为固定带宽 {{ g.volume_lag.inference.plot_bandwidth }} 的单项 95% HAC 区间；文字结论采用量价滞后家族校正，并要求两种波动指标及全部带宽方向一致。相关不代表因果。</p>{% endif %}
 {% elif n == '11' %}<img src="{{ g.images.timescale }}" alt="{{ g.asset_id }} {{ g.path_id }} 粗细波动先后关系"><p class="caption">一步为 {{ config.coarse_factor }} 个基础间隔。方向差 = 细在前相关 − 粗在前相关。</p>
 {% endif %}</section>{% endfor %}
 </article>{% endfor %}

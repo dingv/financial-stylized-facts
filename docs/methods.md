@@ -38,7 +38,13 @@ ACF(k) = Σ (x[t] − x̄)(x[t−k] − x̄) / Σ (x[t] − x̄)²
 
 量价统计配对同一区间成交量与绝对、平方收益，报告 Pearson、Spearman 及最多五个量分位组的平均波动。重复量不强行拆组。量缺失不填零，也不沿用；相关不作因果解释。
 
+量价滞后采用逐 lag 有效配对 Pearson：`corr(V[t], |r[t+k]|)`、`corr(V[t], r[t+k]²)`。正 k 为量在前，缺失保留原槽且不跨 session。点估计范围为 `±max_lag`，HAC 范围为 `±min(max_lag,inference_max_lag)`，包括零。推断使用已有线性化与 Bartlett HAC；单独按代理×有符号 lag×带宽的全部计划组合做 Bonferroni 校正。图用首个配置带宽的单项区间；文字要求两种代理及全部带宽的校正区间一致。它检验相关，不估计因果。
+
+量价模块点估计工作量按 `N×2×(2×max_lag+1)`、HAC 按 `N×2×(2×limit+1)×(max_bandwidth+1)` 估算，分别受 `inference_max_work` 约束。HAC 超限仍保留可算点估计；关闭 `dependence_inference` 不关闭曲线。
+
 粗细尺度使用同一不重叠块：`C[t]=|Σr|`、`F[t]=mean(|r|)`。比较 `corr(F[t],C[t+k])` 与反向相关；差值为前者减后者，负值表示粗在前的相关更强。这里一步是 `coarse_factor` 个基础间隔，与普通 ACF 的一步不同。
+
+方向输出分别记录不对称证据、方向和经典方向一致性。第 3 项用偏度的区块区间对照左偏代理；第 11 项以负方向差对照粗在前更强。反向支持输出 `opposite_direction`，不再笼统输出 `supported`；无证据与未计算分开。
 
 ## 条件厚尾
 

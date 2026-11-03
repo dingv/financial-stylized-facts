@@ -9,7 +9,7 @@ from .decay import persistence_evidence
 
 from .findings import at_lag, lag_label, number
 
-RULE_VERSION = "2"
+RULE_VERSION = "3"
 NORMAL_TAIL_3 = erfc(3 / sqrt(2))
 FACT_NAMES = ["收益线性相关较弱", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集",
               "条件厚尾", "波动相关缓慢衰减", "杠杆效应", "成交量与波动相关", "时间尺度不对称"]
@@ -57,6 +57,45 @@ def lag_evidence(group, config, family, proxy):
 
 def metric(label, value, unit=""):
     return {"label": label, "value": value, "unit": unit}
+
+
+def _directional_result(row, evidence, direction, alignment, basis):
+    """Separate evidence of asymmetry from agreement with a classical direction."""
+    labels = {"consistent": "与经典方向一致", "opposite": "与经典方向相反",
+              "mixed": "方向随滞后变化", "inconclusive": "经典方向尚无一致证据",
+              "not_evaluated": "经典方向未评估"}
+    row.update(asymmetry_evidence=evidence, direction=direction,
+               classical_alignment=alignment, directional_basis=basis,
+               classical_alignment_label=labels[alignment])
+    if alignment == "opposite":
+        row["conclusion"] = "opposite_direction"
+
+
+def add_directional_assessments(rows, config):
+    """Interpret the existing estimates and intervals; never infer absence from p>.05."""
+    for i in ("3", "11"):
+        row = rows[i]
+        if row["evidence_level"] == "unavailable":
+            _directional_result(row, "unavailable", "undetermined", "not_evaluated",
+                                "skewness_proxy" if i == "3" else "coarse_fine_correlation_difference")
+            continue
+        e = row["evidence"]
+        if i == "3":
+            skew = row["metrics"][0]["value"]
+            direction = "left_skew" if skew < 0 else "right_skew" if skew > 0 else "zero_skew"
+            supported = e["positive"] or e["negative"]
+            all_zero = e["complete"] and all(r["lower"] <= 0 <= r["upper"] for r in e["intervals"])
+            state = "supported" if supported else "not_detected" if all_zero else "inconclusive"
+            alignment = "consistent" if e["negative"] else "opposite" if e["positive"] else "inconclusive"
+            _directional_result(row, state, direction, alignment, "skewness_proxy")
+            row["notes"].append("经典方向对照使用左偏这一代理指标；偏度不单独检验最大回撤或首达时间不对称。")
+        else:
+            neg, pos = e["negative_lags"], e["positive_lags"]
+            direction = "mixed" if neg and pos else "coarse_leads_fine" if neg else "fine_leads_coarse" if pos else "undetermined"
+            state = "supported" if neg or pos else "not_detected" if e["complete"] and not e["sensitive_lags"] else "inconclusive"
+            alignment = "mixed" if neg and pos else "consistent" if neg else "opposite" if pos else "inconclusive"
+            _directional_result(row, state, direction, alignment, "coarse_fine_correlation_difference")
+            row["notes"].append("经典方向为粗波动在前的相关更强；方向结论仅覆盖取得区间支持的滞后，不代表因果。")
 
 
 def assess(group, config):
@@ -262,10 +301,32 @@ def assess(group, config):
         er = block_evidence(group, config, "volume_abs_spearman")
         supported = ep["positive"] and er["positive"]
         point = va["pearson"] is not None and va["spearman"] is not None and va["pearson"] > 0 and va["spearman"] > 0
-        add(10, "supported" if supported else "indicative" if point else "mixed", "量价正相关有支持" if supported else "有正相关迹象" if point else "未见一致正相关",
-            "成交量与绝对收益的 Pearson、Spearman 区间在各块长下均为正。" if supported else "保留 Pearson 与 Spearman 对照；近似区间未给出一致正相关支持。",
+        add(10, "supported" if supported else "indicative" if point else "mixed", "同期量价正相关有支持" if supported else "同期有正相关迹象" if point else "同期未见一致正相关",
+            "同期成交量与绝对收益的 Pearson、Spearman 区间在各块长下均为正。" if supported else "同期保留 Pearson 与 Spearman 对照；近似区间未给出一致正相关支持。",
             [metric("Pearson", va["pearson"]), metric("Spearman", va["spearman"]), metric("配对数", va["pair_count"])],
             level="interval" if supported else "descriptive", evidence={"pearson":ep, "spearman":er})
+
+    if "volume_lag" in group:
+        from .volume_lag import volume_lag_evidence
+        vl = group["volume_lag"]
+        le = volume_lag_evidence(vl, config)
+        rows["10"]["evidence"]["lead_lag"] = le
+        if vl["status"] != "not_applicable":
+            lead = le["positive_volume_earlier_lags"]
+            follow = le["positive_volatility_earlier_lags"]
+            descriptions = []
+            if lead:
+                descriptions.append("成交量在前的正相关：lag " + ", ".join(map(str, lead)))
+            if follow:
+                descriptions.append("波动在前的正相关：lag " + ", ".join(map(str, follow)))
+            if not descriptions:
+                descriptions.append("前后滞后尚无两种波动指标、各带宽一致的正相关区间支持")
+            signed_negative = [k for k in le["negative_lags"] if k != 0]
+            if signed_negative:
+                descriptions.append("负相关获得区间支持的 lag：" + ", ".join(map(str, signed_negative)))
+            rows["10"]["lead_lag_summary"] = "；".join(descriptions) + f"。每步 {lag_label(config)}。"
+            rows["10"]["lead_lag_status"] = vl["inference"]["status"]
+            rows["10"]["lead_lag_reason"] = vl["inference"]["reason"]
 
     ts = group["timescale_asymmetry"]
     ev = lag_evidence(group, config, "timescale", "difference")
@@ -292,5 +353,6 @@ def assess(group, config):
     # lag-1 display value appear to be the evidence for a multi-lag conclusion.
     for i, supporting in [(1, selected), (6, common), (9, negative), (11, sorted(neg + pos) if row.get("difference") is not None else [])]:
         rows[str(i)]["scope_note"] = "区间支持的 lag：" + ", ".join(map(str, supporting)) if supporting else ""
+    add_directional_assessments(rows, config)
     return {"rule_version": RULE_VERSION, "automatic_pass_fail": False,
             "method": "fixed_evidence_rules", "by_fact": dict(sorted(rows.items(), key=lambda x: int(x[0])))}
