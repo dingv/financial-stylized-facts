@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from financial_stylized_facts.data import AnalysisConfig
-from financial_stylized_facts.report import analyze_csv
+from financial_stylized_facts.report import analyze_csv, _align_inference
 
 
 def write_input(tmp_path):
@@ -108,7 +108,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     pd.DataFrame({"timestamp": pd.date_range("2024-01-01", periods=701, freq="min", tz="UTC"),
                   "price": 100*np.exp(np.r_[0, returns.cumsum()])}).to_csv(p, index=False)
     out = tmp_path/"garch-report"
-    result = analyze_csv(p, out, AnalysisConfig(frequency="1min"))
+    result = analyze_csv(p, out, AnalysisConfig(frequency="1min", coarse_factor=2))
     conditional = result["groups"][0]["conditional_tails"]
     assert conditional["status"] == "computed"
     segment = conditional["segments"][0]
@@ -127,3 +127,36 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
     assert text.count("data:image/png;base64,") == 10
+    dependence = pd.read_csv(out/"dependence_intervals.csv")
+    assert len(dependence) == 240
+    computed = dependence[dependence.status == "computed"]
+    assert set(computed.family) == {"acf", "leverage", "timescale"}
+    assert (computed.familywise_lower <= computed.lower).all()
+    assert (computed.familywise_upper >= computed.upper).all()
+    g = result["groups"][0]
+    assert g["dependence_uncertainty"]["plot_bandwidth"] == 10
+    for row in dependence.itertuples():
+        if row.family == "acf":
+            expected = g["acf"][row.proxy]["values"][row.lag]
+        elif row.family == "leverage":
+            est = g["leverage"][row.proxy]
+            expected = est["values"][est["lags"].index(row.lag)]
+        else:
+            expected = g["timescale_asymmetry"]["differences"][row.lag-1]["difference"]
+        assert row.estimate == pytest.approx(expected, abs=1e-12)
+        assert row.lag_seconds == row.lag*(120 if row.family == "timescale" else 60)
+    assert "Bonferroni" in text and "ACF 尚未提供置信区间" not in text
+    assert g["leverage"]["squared"]["uncertainty"]["reference"] == "group.dependence_uncertainty"
+    assert g["timescale_asymmetry"]["uncertainty"]["family"] == "timescale"
+
+
+def test_inference_cannot_draw_a_band_for_an_unavailable_reported_point():
+    inference = {"rows":[{"family":"acf","proxy":"return","lag":1,"estimate":.1,
+                           "status":"computed","lower":0,"upper":.2}]}
+    _align_inference(inference,{"return":{"lags":[1],"values":[None]}},{})
+    assert inference["rows"][0]["estimate"] is None
+    assert inference["rows"][0]["lower"] is None
+    assert inference["status"] == "not_computable"
+    inference["rows"][0]["estimate"] = .1
+    with pytest.raises(ValueError,match="点估计不一致"):
+        _align_inference(inference,{"return":{"lags":[1],"values":[.2]}},{})

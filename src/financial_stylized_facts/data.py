@@ -38,13 +38,25 @@ class AnalysisConfig:
     bootstrap_block_lengths: tuple[int, ...] = (10, 20, 40)
     bootstrap_seed: int = 20261103
     bootstrap_max_work: int = 20000000
+    dependence_inference: str = "hac"
+    inference_max_lag: int = 10
+    inference_min_pairs: int = 200
+    hac_bandwidths: tuple[int, ...] = (10, 20, 40)
+    inference_max_work: int = 100000000
 
     def validate(self):
         if not isinstance(self.allow_missing_prices, bool):
             raise ValueError("allow_missing_prices 必须为布尔值")
-        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn", "bootstrap_reps", "bootstrap_seed", "bootstrap_max_work"]:
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn", "bootstrap_reps", "bootstrap_seed", "bootstrap_max_work", "inference_max_lag", "inference_min_pairs", "inference_max_work"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
+        if self.dependence_inference not in {"hac", "off"}:
+            raise ValueError("dependence_inference 必须为 hac 或 off")
+        if not 1 <= self.inference_max_lag <= 100 or self.inference_min_pairs < 20 or self.inference_max_work < 1:
+            raise ValueError("推断最大 lag 为 1–100，至少 20 个配对，工作量上限为正")
+        bands = self.hac_bandwidths
+        if not bands or len(bands)>4 or any(isinstance(x,bool) or not isinstance(x,Integral) or not 0<=x<=1000 for x in bands) or list(bands)!=sorted(set(bands)):
+            raise ValueError("hac_bandwidths 为严格递增的 0–1000 整数，最多 4 项")
         if self.bootstrap_reps != 0 and not 200 <= self.bootstrap_reps <= 10000:
             raise ValueError("bootstrap_reps 为 0（关闭）或 200–10000")
         if self.bootstrap_seed < 0 or self.bootstrap_max_work < 1:

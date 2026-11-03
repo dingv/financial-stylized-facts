@@ -60,7 +60,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 结果与验证
 
-当前结果 schema_version=0.6。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.9。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
@@ -77,7 +77,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 `volume_kind=interval`，必须声明单位。每行的量对应截至该行时间戳的基础收益区间；grid 输入预先对齐并汇总到 `frequency`，不转换累计量或自动聚合逐笔数据。observations 的量对应结束于该观测的区间。空白量为缺失，零是有效观测；负值、无穷、重复时间戳和未声明口径拒绝。不同资产的单位需统一声明或分别运行。缺失量不沿用；价格沿用策略与量分开处理。
 
-对同一路径有限的 `(volume_t, |r_t|)`、`(volume_t, r_t²)` 配对分别计算 Pearson 和 Spearman（平均秩处理并列）。不输出 SciPy 的 IID p 值；时间依赖未处理。量及收益先缩放再计算，避免大金额平方溢出。低于 `min_pairs` 或方差近零，系数为 null 并保留原因。图使用量的 0、20、40、60、80、100% 分位边界，去掉重复边界，相同量不拆组；最多五组，可能不等样本数。不把分组均值的相关冒充原始区间相关。日内季节调整尚未实现。
+对同一路径有限的 `(volume_t, |r_t|)`、`(volume_t, r_t²)` 配对分别计算 Pearson 和 Spearman（平均秩处理并列）。不输出 SciPy 的 IID p 值；适用时以本文后述联合区块重采样处理部分短期依赖。量及收益先缩放再计算，避免大金额平方溢出。低于 `min_pairs` 或方差近零，系数为 null 并保留原因。图使用量的 0、20、40、60、80、100% 分位边界，去掉重复边界，相同量不拆组；最多五组，可能不等样本数。不把分组均值的相关冒充原始区间相关。日内季节调整尚未实现。
 
 ## 时间尺度不对称
 
@@ -85,7 +85,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 每个 k 按同 session 的有效配对独立去均值计算 Pearson；不跨 session，不用同期 k=0 推断不对称。差值任一方向不可算则为 null。横轴一步为 m 个基础间隔；observations 模式只能标为 m 个观测，不能假称固定分钟。默认 m=30，最大 lag 沿用 `max_lag`，但以完整块数截断。该默认是可配置选择，不是从数据挑选最大不对称。
 
-配对、差值及两向样本数全部导出；没有置信区间、因果推断或样本外预测检验。反转整块对齐的时间序列应使 D 反号；将 FX 收益整体反号应不改变 C、F、D。测试包含这两个性质、手算分块、含缺口的直接 Pearson 对照，以及已知粗在前的构造过程。
+配对、差值及两向样本数全部导出；0.9 增加差值的 HAC 近似区间，见[时间相关推断](dependence-inference.md)，没有因果推断或样本外预测检验。反转整块对齐的时间序列应使 D 反号；将 FX 收益整体反号应不改变 C、F、D。测试包含这两个性质、手算分块、含缺口的直接 Pearson 对照，以及已知粗在前的构造过程。
 
 ## 条件厚尾：0.5 实现约定
 
@@ -111,7 +111,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 这是按段分层、条件于已观测段数/长度的**单统计量近似区间**，不是从总体随机抽取未来交易日的区间。需要段内近似平稳、弱依赖及统计量所需矩条件；峰度的区间尤其依赖高阶矩。长记忆、强远尾、结构变化、信息性缺失或跨段关联可能使覆盖率失效。块长对照揭示部分敏感性，但不证明假设成立。不存在统一的 11 项“通过”判定。
 
-没有施加零相关、正态性或其他零假设；不提供 p 值，不把“区间不含零”解释为未经校准的全报告显著性。多个资产、多个指标和块长的区间不是同时置信区间，没有多重比较校正。ACF/杠杆/尺度差值、GARCH 参数和拟合后残差暂不提供该区间，不用固定残差重采样忽略模型估计误差。相关的图和元数据继续明确无不确定性。
+没有施加零相关、正态性或其他零假设；不提供 p 值，不把“区间不含零”解释为未经校准的全报告显著性。这些重采样区间没有多重比较校正，也不用于 ACF/杠杆/尺度差值。后者在 0.9 使用单独的 [HAC 近似区间](dependence-inference.md)，含带宽对照和单路径内 Bonferroni 区间。GARCH 参数和拟合后残差仍无区间，不用固定残差重采样忽略模型估计误差。
 
 ## 来源适配：0.7 实现约定
 

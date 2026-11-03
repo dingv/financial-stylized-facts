@@ -65,6 +65,11 @@ def main(argv=None):
     analyze.add_argument("--bootstrap-block-lengths", type=int, nargs="+", default=[10, 20, 40], help="以基础收益观测数计的块长，逐个展示敏感性")
     analyze.add_argument("--bootstrap-seed", type=int, default=20261103)
     analyze.add_argument("--bootstrap-max-work", type=int, default=20000000, help="每条路径的收益数×重复次数×块长方案数上限")
+    analyze.add_argument("--dependence-inference", choices=["hac", "off"], default="hac")
+    analyze.add_argument("--inference-max-lag", type=int, default=10, help="HAC 近似区间覆盖的最大早期 lag")
+    analyze.add_argument("--inference-min-pairs", type=int, default=200)
+    analyze.add_argument("--hac-bandwidths", type=int, nargs="+", default=[10,20,40], help="Bartlett 带宽；第一项用于图，其他项保留作对照")
+    analyze.add_argument("--inference-max-work", type=int, default=100000000)
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     try:
