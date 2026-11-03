@@ -21,7 +21,9 @@ def make_prices(seed=20261102, n=5000):
         variance = .05 + .1 * clustered[i]**2 + .85 * variance
     frames = []
     asymmetric = rng.exponential(size=n)-1
-    for label, returns in [("Gaussian iid", gaussian), ("Student-t iid", heavy), ("GARCH Gaussian", clustered[1000:]), ("Skewed iid", asymmetric)]:
+    innovations = rng.normal(size=n+1)
+    leverage_toy = innovations[1:]*(1-.5*np.tanh(innovations[:-1]))
+    for label, returns in [("Gaussian iid", gaussian), ("Student-t iid", heavy), ("GARCH Gaussian", clustered[1000:]), ("Skewed iid", asymmetric), ("Leverage toy", leverage_toy)]:
         prices = 100 * np.exp(np.r_[0, np.cumsum(returns * .001)])
         frames.append(pd.DataFrame({"timestamp": pd.date_range("2024-01-01", periods=n+1, freq="min", tz="UTC"),
                                     "price": prices, "asset_id": label, "path_id": "seed-"+str(seed), "session_id": "simulation"}))

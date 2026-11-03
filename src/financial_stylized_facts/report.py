@@ -21,6 +21,7 @@ from . import __version__
 from .data import AnalysisConfig, read_prices, sample_path
 from .statistics import distribution, three_acfs
 from .diagnostics import analyze_diagnostics
+from .dependence import dependence_diagnostics
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -124,6 +125,56 @@ def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
 
 
+def _dependence_plots(diagnostics, config, directory, group_id):
+    paths, embedded = {}, {}
+    if config.sampling == "grid":
+        seconds = pd.Timedelta(config.frequency).total_seconds()
+        divisor, unit = (3600, "hours") if seconds >= 3600 else (60, "min") if seconds >= 60 else (1, "seconds")
+        factor, xlabel = seconds/divisor, f"Lag ({unit})"
+    else:
+        factor, xlabel = 1., "Lag (observations)"
+    fig = _figure(height=3.6)
+    axes = fig.subplots(1, 2, sharey=True)
+    for ax, proxy, title in zip(axes, ["squared", "absolute"], ["Squared-return proxy", "Absolute-return proxy"]):
+        estimate = diagnostics["leverage"][proxy]
+        values = [np.nan if v is None else v for v in estimate["values"]]
+        ax.axhline(0, color="#9aa3ad", linewidth=.8)
+        ax.axvline(0, color="#9aa3ad", linestyle=":", linewidth=.8)
+        if np.isfinite(values).any():
+            ax.plot(np.asarray(estimate["lags"])*factor, values, color="#2563a6", linewidth=1, marker=".", markersize=3)
+        else:
+            ax.text(.5, .5, "Not computable", transform=ax.transAxes, ha="center")
+        ax.set(title=title, xlabel=xlabel)
+        _style(ax)
+    axes[0].set_ylabel("Return / volatility correlation")
+    paths["leverage"] = f"figures/{group_id}-leverage.png"
+    embedded["leverage"] = _save(fig, directory/paths["leverage"])
+
+    fig = _figure(height=3.6)
+    axes = fig.subplots(1, 2, sharey=True)
+    persistence = diagnostics["volatility_persistence"]
+    estimates = [[("Full path", persistence["full"])], [(f"Block {b['block']}", b["acf"]) for b in persistence["blocks"]]]
+    for ax, curves, title in zip(axes, estimates, ["Full-path absolute-return ACF", "Chronological blocks"]):
+        plotted = False
+        for label, estimate in curves:
+            lags = np.asarray(estimate["lags"])[1:]*factor
+            values = [np.nan if v is None else v for v in estimate["values"][1:]]
+            if np.isfinite(values).any():
+                ax.plot(lags, values, linewidth=1., label=label)
+                plotted = True
+        ax.axhline(0, color="#9aa3ad", linewidth=.8)
+        if not plotted:
+            ax.text(.5, .5, "Insufficient pairs / zero variance", transform=ax.transAxes, ha="center", fontsize=9)
+        elif len(curves) > 1:
+            ax.legend(frameon=False, fontsize=8, ncol=2)
+        ax.set(title=title, xlabel=xlabel)
+        _style(ax)
+    axes[0].set_ylabel("Absolute-return autocorrelation")
+    paths["persistence"] = f"figures/{group_id}-persistence.png"
+    embedded["persistence"] = _save(fig, directory/paths["persistence"])
+    return paths, embedded
+
+
 def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
     paths, embedded = {}, {}
     fig = _figure(height=3.5)
@@ -198,16 +249,17 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         metrics = distribution(sampled["log_return"])
         acfs = three_acfs(sampled, config.max_lag, config.min_pairs)
         diagnostics, rms = analyze_diagnostics(sampled, config)
+        diagnostics.update(dependence_diagnostics(sampled, config))
         groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.2", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.3", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i <= 6 else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i in [1, 2, 3, 4, 5, 6, 8, 9] else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -218,10 +270,14 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         digest.update(p.read_bytes())
     result["provenance"]["source_sha256"] = digest.hexdigest()
     views, summary_rows, acf_rows, scale_rows = [], [], [], []
+    leverage_rows, persistence_rows = [], []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
         new_paths, new_images = _diagnostic_plots(sampled, diagnostics, rms, config, output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
+        new_paths, new_images = _dependence_plots(diagnostics, config, output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
@@ -243,6 +299,17 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
             scale_rows.append({"asset_id": asset, "path_id": path, **row,
                                "interval_seconds": pd.Timedelta(config.frequency).total_seconds()*row["factor"] if config.sampling == "grid" else None,
                                "observation_unit": config.observation_unit})
+        for proxy, estimate in diagnostics["leverage"].items():
+            for lag, value, count, status in zip(estimate["lags"], estimate["values"], estimate["pair_counts"], estimate["point_status"]):
+                leverage_rows.append({"asset_id": asset, "path_id": path, "proxy": proxy, "lag": lag,
+                                      "lag_seconds": lag*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
+                                      "observation_unit": config.observation_unit, "correlation": value, "pair_count": count, "status": status})
+        persistence = diagnostics["volatility_persistence"]
+        for label, estimate in [("full", persistence["full"])] + [(f"block_{b['block']}", b["acf"]) for b in persistence["blocks"]]:
+            for lag, value, count in zip(estimate["lags"], estimate["values"], estimate["pair_counts"]):
+                persistence_rows.append({"asset_id": asset, "path_id": path, "period": label, "lag": lag,
+                                         "lag_seconds": lag*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
+                                         "observation_unit": config.observation_unit, "acf": value, "pair_count": count})
         for name, estimate in acfs.items():
             for lag, value, count in zip(estimate["lags"], estimate["values"], estimate["pair_counts"]):
                 acf_rows.append({"asset_id": asset, "path_id": path, "series": name, "lag": lag,
@@ -253,6 +320,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
+    pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
+    pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)
     env = Environment(loader=FileSystemLoader(source / "templates"), autoescape=select_autoescape(["html"]))
     env.filters["number"] = _fmt

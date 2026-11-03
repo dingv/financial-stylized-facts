@@ -18,7 +18,7 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版覆盖六项事实的描述性诊断：收益相关、厚尾、涨跌不对称、聚合高斯化、间歇性和波动聚集。正式统计检验仍待补齐。</p></header>
+<p class="muted">本版提供八项事实的描述性诊断，新增收益与后续波动的关系、较长范围的波动相关性。正式统计检验仍待补齐。</p></header>
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
@@ -52,6 +52,16 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <img src="{{ g.images.intermittency }}" alt="{{ g.asset_id }} {{ g.path_id }} 的滚动 RMS">
 {% if g.intermittency.exceedance_fraction is not none %}<p>偏离全路径均值超过 {{ config.burst_threshold }} 个标准差的收益共 <strong>{{ g.intermittency.exceedance_count }}</strong> 条，占 <strong>{{ (g.intermittency.exceedance_fraction*100)|number }}%</strong>；这些观测形成 {{ g.intermittency.episodes.observed_count }} 个连续片段，最长观察到 {{ g.intermittency.episodes.max_observed_length }} 个基础间隔。</p>{% else %}<p>{{ g.intermittency.reason }}</p>{% endif %}
 <p class="muted">完整 RMS 窗口 {{ g.intermittency.rms_valid_windows }} 个。RMS 没有减去局部均值，漂移也会使它升高；大幅波动阈值是统一的描述约定，不是间歇性的显著性检验。</p></section>
+<section class="card"><h2>7. 下跌之后，波动更大吗？</h2><p>横轴大于 0，表示比较当前收益与之后的波动；小于 0 则比较当前收益与之前的波动。两图分别用平方收益和绝对收益代表波动大小。</p>
+<img src="{{ g.images.leverage }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益与前后波动相关性">
+<p>若正滞后处为负相关，意味着相对较低的收益与后续较大的波动相伴。这是杠杆效应的一种统计线索，不能据此断定因果，也不要求所有市场都出现。</p>
+<p class="muted">每个滞后单独用有效配对计算 Pearson 相关；配对不足或方差太小的位置留空。外汇换成倒数报价会反转收益符号，相关系数也随之反号。</p>
+{% for proxy, estimate in g.leverage.items() %}{% if estimate.status != 'computed' %}<p class="muted">{{ proxy }}：{{ estimate.reason }}</p>{% endif %}{% endfor %}</section>
+<section class="card"><h2>8. 波动相关能持续多久，在不同时段都出现吗？</h2><p>左图把绝对收益 ACF 延长到最多 {{ config.volatility_max_lag }} 个基础间隔；右图按时间顺序分成 {{ config.stability_blocks }} 段，各段独立计算，查看全程的现象是否稳定。</p>
+<img src="{{ g.images.persistence }}" alt="{{ g.asset_id }} {{ g.path_id }} 的较长范围 ACF 和分段对照">
+<p>如果只有全程相关明显，分段结果却不同，就需要检查波动状态变化等因素。即使较长滞后仍有正相关，也不能仅凭这张图认定存在长记忆或幂律衰减。</p>
+<details><summary>查看分段范围与样本数</summary><div class="table-wrap"><table><tr><th>段</th><th>开始 / 结束（UTC）</th><th>有效收益数</th><th>状态</th></tr>{% for b in g.volatility_persistence.blocks %}<tr><td>{{ b.block }}</td><td>{{ b.start or '无观测' }}<br>{{ b.end or '无观测' }}</td><td>{{ b.acf.n }}</td><td>{{ '已计算' if b.acf.status == 'computed' else b.acf.reason }}</td></tr>{% endfor %}</table></div>
+<p class="muted">按时间排序后的观测槽数等分，保留缺口；交易时段边界与分段边界不配对。各段独立去均值，较短分段和缺口会改变配对覆盖率。图中不删除负相关、不筛选正点拟合直线。详细配对数见 volatility_acf.csv。</p></details></section>
 <details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
 <tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
 <tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>

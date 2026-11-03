@@ -22,11 +22,15 @@ class AnalysisConfig:
     aggregation_factors: tuple[int, ...] = (1, 5, 10, 20)
     rms_window: int = 20
     burst_threshold: float = 3.0
+    volatility_max_lag: int = 300
+    stability_blocks: int = 4
 
     def validate(self):
-        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window"]:
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
+        if not 1 <= self.volatility_max_lag <= 2000 or not 2 <= self.stability_blocks <= 8:
+            raise ValueError("volatility_max_lag 必须在 1–2000；stability_blocks 必须在 2–8")
         factors = self.aggregation_factors
         if not factors or len(factors) > 12 or any(isinstance(x, bool) or not isinstance(x, Integral) or x < 1 or x > 10000 for x in factors):
             raise ValueError("aggregation_factors 需为 1–10000 的正整数，最多 12 项")

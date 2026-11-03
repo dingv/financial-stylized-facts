@@ -1,6 +1,6 @@
 # 统计实现约定
 
-本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性和报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF 与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
@@ -46,16 +46,27 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 上述设置是操作约定，并非声称 Cont 指定了统一参数或检验。三项仅标记 descriptive_only。
 
+## 杠杆效应与长范围波动 ACF（已实现描述诊断）
+
+杠杆效应使用 L(k)=corr(r_t, v_{t+k})，v 分别取 r² 和 |r|，正 k 表示当前收益在前、波动在后；输出负 k 和同期 k=0 作对照。操作定义参考 [Ratliff-Crain 等第 4.6 节](https://arxiv.org/html/2311.07738v2)，不宣称等同于所有文献中其他归一化的 leverage function。
+
+每个 lag 只取同一 session 内的有效端点配对，不要求中间所有点有效，不跨 session；不压缩缺口。对该 lag 的配对集合各自求均值与平方偏差和，使用 Pearson 分子/分母，与完整序列 ACF 的全序列固定分母不同。估计器名 lag_specific_pairwise_pearson。FFT 分别计算掩码配对数、两侧和、平方和与乘积和，先按全路径有限返回值最大绝对值缩放，再全局中心化以减小平方溢出与抵消误差；最后仍按配对集合中心化。以显式循环配对和 [SciPy pearsonr](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html) 交叉验证符号、数值和边界。
+
+N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器 epsilon*对应二阶原始和尺度时，标 zero_or_near_zero_pair_variance 并输出 null，不把舍入误差生成的相关当作结果。不导出 SciPy 的 iid p 值，也不将负相关称为因果。倒数报价将 r 变为 -r、波动代理不变，因此相关符号反转。
+
+长范围波动相关沿用 session_masked_fixed_denominator 估计器，主序列为 |r|，默认最大 lag=300，可设 1–2000。按时间排序后的观测槽将整条路径等分为默认 4 个诊断段（可设 2–8），保留缺口，每段内仍按 session 分隔；每段各自估计均值、固定分母和 ACF。边界前一槽到边界后一槽产生的基础收益保留并归到结束时刻，但 ACF 端点不跨诊断段。等槽数不是等日历跨度，也不是自动去除日内季节性。输出分段起止时间、有效样本量和每 lag 配对数，样本不足不画曲线。
+
+该对照可以识别状态混合对全程相关的贡献，但分段后配对减少与均值重估也影响曲线，因此不单凭“分段后相关下降”确定机制。保留负点、不选择正点作 log-log 拟合；long_memory_test 状态固定为 not_implemented。较长范围相关仍可能来自短记忆、结构变化或季节性，不能代替幂律或长记忆检验。新增测试含无杠杆的 iid、已知前向波动响应、倒数报价反号，以及“全程正相关但分段接近零”的方差状态混合。
+
 ## 其他模块的候选算法（均尚未实现）
 
 - 条件厚尾：候选为常数均值 Gaussian QMLE GARCH(1,1)，e_t=(r_t-mu)/sigma_t。按 [arch 官方定义](https://arch.readthedocs.io/en/latest/univariate/introduction.html) 拟合；检查优化收敛、参数边界、尺度处理与残余波动相关，再比较残差分布。全样本拟合属于描述性拟合，不声称样本外预测；如做样本外评估必须分训练/验证。该可选模块依赖 arch，尚未安装或实现。
-- 杠杆效应：L(k)=corr(r_t, r_{t+k}²)，k>0 代表收益先发生；同时可配置绝对收益代理，并输出负 lag 对照。配对必须按真实时间和同一路径，效应符号受外汇报价方向影响。
 - 量价相关：同区间量与 |r|、r² 的 Pearson/Spearman 相关，附日内时段对照；无 volume 就 not_applicable，不能用常数或成交次数偷偷代替。
 - 时间尺度不对称：在同一粗网格上，用 C_t=|sum_{i=1}^{m}r_{t,i}| 和 F_t=sum_{i=1}^{m}|r_{t,i}| 表示粗、细波动，比较 corr(C_t,F_{t+k}) 与 corr(F_t,C_{t+k})，k>0。前后窗口互不重叠，要求 m>1 和足够粗区间；输出差值及不确定性。此为本库候选操作定义，正式实现前须核对原始时间尺度文献，不能仅据该相关差异声称因果或预测改善。
 
 ## 结果与验证
 
-当前结果 schema_version=0.2。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures，以及 asymmetry、aggregation、intermittency。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的第 1–6 项标 descriptive_only，其他标 not_implemented；不虚构指标结果。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv 逐组逐尺度导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.3。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的第 1–6、8、9 项标 descriptive_only，第 7、10、11 项标 not_implemented；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
