@@ -22,6 +22,8 @@ fsf analyze "$demo_dir/prices.csv" --output "$demo_dir/report" --frequency 1min 
 
 打开输出目录里的 `index.html`，即可切换查看五种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH、有明显偏度的独立收益，以及负冲击后增大波动的示意过程。最后一种只用于验证时间方向，不是拟合得到的真实市场模型。HTML 已嵌入图片，可以单独复制到本地打开。数值另行导出 JSON 与 CSV。
 
+报告先给当前路径的具体观察，再逐项看图与限制；每个观察都能追溯到统计结果。它会提醒极端观测对峰度的影响、数据缺口和拟合覆盖率，不把十一项事实当作自动评分表。
+
 自己的 CSV 至少包含 `timestamp,price`；多资产、多路径使用 `asset_id,path_id`。详见[使用指南](docs/usage.md)。EBS Tick、两组 FRED 外汇及明确字段的日频 CSV 可先用 `fsf prepare` 转换，见[真实数据指南](docs/data-guide.md)与[第一轮验证结果](docs/real-data-validation.md)。
 
 量价与时间方向另有一个刻意构造的校验示例：

@@ -38,6 +38,12 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert "NaN" not in numerical and "Infinity" not in numerical
     assert json.loads(numerical)["coverage"][6]["status"] == "descriptive_only"
     assert len(pd.read_csv(out / "summary.csv")) == 2
+    observations = pd.read_csv(out/"observations.csv")
+    assert len(observations) == 22
+    assert observations.groupby("path_id").size().to_dict() == {"constant": 11, "gauss": 11}
+    assert "这条路径先看三件事" in text
+    assert all(len(g["findings"]["by_fact"]) == 11 for g in result["groups"])
+    assert result["groups"][0]["findings"]["by_fact"]["2"]["status"] == "zero_variance"
     assert len(list((out / "figures").glob("*.png"))) == 18
     assert len(pd.read_csv(out / "scales.csv")) == 8
     assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
@@ -117,6 +123,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert "excess_kurtosis" in set(intervals.metric)
     assert set(intervals.block_length) == {10, 20}
     assert result["groups"][0]["distribution"]["uncertainty"]["reference"] == "group.uncertainty"
+    assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
     assert text.count("data:image/png;base64,") == 10

@@ -25,6 +25,7 @@ from .dependence import dependence_diagnostics
 from .activity import activity_diagnostics
 from .conditional import conditional_diagnostics
 from .uncertainty import uncertainty_diagnostics
+from .findings import summarize, lag_label, human_timestamp
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -368,11 +369,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         diagnostics["conditional_tails"] = conditional
         diagnostics["uncertainty"] = uncertainty_diagnostics(sampled, config, seed_key=str(asset)+"\0"+str(path))
         metrics["uncertainty"] = {"status": diagnostics["uncertainty"]["status"], "reference": "group.uncertainty", "reason": diagnostics["uncertainty"]["reason"]}
+        diagnostics["asymmetry"]["uncertainty"] = {**metrics["uncertainty"], "metrics": ["skewness"], "scope": "偏度的近似区间，不覆盖涨跌段或首达时间"}
+        diagnostics["volume_volatility"]["uncertainty"] = {**metrics["uncertainty"], "metrics": ["volume_abs_pearson", "volume_abs_spearman", "volume_squared_pearson"], "scope": "仅已声明的量与收益联合重采样，不覆盖季节性调整"} if config.volume_kind == "interval" else {"status": "not_applicable", "reason": "未提供成交量"}
         groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.7", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.8", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
@@ -393,6 +396,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     volume_rows, timescale_rows = [], []
     conditional_rows = []
     uncertainty_rows = []
+    observation_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
@@ -409,6 +413,10 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         paths.update(new_paths)
         embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
+        item["findings"] = summarize(item, config, sampled)
+        for finding in item["findings"]["by_fact"].values():
+            observation_rows.append({"asset_id": asset, "path_id": path, **finding,
+                                     "references": json.dumps(finding["references"], ensure_ascii=False)})
         result["groups"].append(item)
         warnings = []
         if metrics["n"] < 100:
@@ -419,7 +427,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
             warnings.append(f"有 {quality['carried_prices']} 个价格沿用较早观测，可能增加零收益；最大沿用时长为 {config.max_staleness}。")
         if quality["duplicate_rows_last_wins"]:
             warnings.append("同时间的多条价格按 CSV 原始行顺序取最后一条。")
-        views.append({**item, "images": embedded, "id": group_id, "warnings": warnings})
+        views.append({**item, "images": embedded, "id": group_id, "warnings": warnings,
+                      "range_label": human_timestamp(quality["start"], config)+" — "+human_timestamp(quality["end"], config)})
         summary_rows.append({"asset_id": asset, "path_id": path, **quality, **{k: metrics[k] for k in ["mean", "std", "zero_fraction", "excess_kurtosis", "status", "reason"]}})
         summary_rows[-1].update(skewness=diagnostics["asymmetry"]["skewness"],
                                 exceedance_fraction=diagnostics["intermittency"]["exceedance_fraction"])
@@ -470,6 +479,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     serialized = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
+    pd.DataFrame(observation_rows, columns=["asset_id", "path_id", "fact_id", "status", "text", "limitation", "references"]).to_csv(output_dir/"observations.csv", index=False)
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
     pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)
     pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
@@ -480,7 +490,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)
     env = Environment(loader=FileSystemLoader(source / "templates"), autoescape=select_autoescape(["html"]))
     env.filters["number"] = _fmt
-    html = env.get_template("report.html").render(result=result, groups=views, config=config)
+    html = env.get_template("report.html").render(result=result, groups=views, config=config, clock_label=lag_label(config))
     # The HTML is written last, so an interrupted run cannot look complete.
     (output_dir / "index.html").write_text(html, encoding="utf-8")
     return result

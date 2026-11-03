@@ -112,6 +112,7 @@ def test_prepare_cli_and_provenance_is_escaped_and_hash_checked(tmp_path):
     html = (report/"index.html").read_text()
     assert "&lt;script&gt;unsafe&lt;/script&gt;" in html
     assert "<script>unsafe</script>" not in html
+    assert "每步 = 1 个日频观测" in html and "source-date-slot" not in html
     assert json.loads((report/"results.json").read_text())["data_source"]["canonical_sha256"] == file_sha256(out/"prices.csv")
     (out/"prices.csv").write_text((out/"prices.csv").read_text().replace("100", "99"))
     assert main(["analyze-prepared", str(out), "--output", str(tmp_path/"wrong")]) == 2
