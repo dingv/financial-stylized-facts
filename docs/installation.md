@@ -41,7 +41,7 @@ fsf --version
 fsf demo --output /tmp/fsf-first-demo
 ```
 
-打开 `/tmp/fsf-first-demo/report/index.html`。报告提供五种已知性质的合成序列，切换下拉框即可比较。`prices.csv` 保存生成的数据，`demo.json` 保存种子、生成参数与分析设置；同版本、同种子和配置可重现。它不是下载的市场行情，也不是拟合真实市场的模型。
+打开 `/tmp/fsf-first-demo/report/index.html`。报告提供五种已知性质的合成序列，切换下拉框即可比较。`prices.csv` 保存生成的数据，`demo.json` 保存种子、生成参数与分析设置；相同软件环境、种子和配置可重现；不同依赖构建或平台可能有浮点末位差异，不保证 CSV 字节哈希跨平台相同。它不是下载的市场行情，也不是拟合真实市场的模型。
 
 默认每条路径 2400 个一分钟收益。增加 `--seed 123` 可以换种子，增加 `--observations 5000` 可以用更长的合成样本。程序不会覆盖已有输出目录；重试时请换新目录。
 

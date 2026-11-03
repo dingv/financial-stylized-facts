@@ -23,12 +23,18 @@
 ## 证据记录（2026-11-03）
 
 - 候选 wheel 从 sdist 构建，独立安装文件目录下 **215 tests passed**；包内 basic/activity/缺少 arch 三类演示完成。`/tmp/fsf-release-package-20261103/verification.json` 记录约 54.28 秒和包哈希；完整测试约 22.46 秒。arch 缺失由导入拦截模拟，不称为已经卸载重装依赖。
-- 之前 64e5816 的真正新建 Conda CI [运行 41599262401](https://github.com/dingv/financial-stylized-facts/actions/runs/41599262401) 已通过（2m1s）。候选最新提交仍需读取自身 CI，不能用旧运行冒充新提交通过。
+- 之前 64e5816 的真正新建 Conda CI [运行 41599262401](https://github.com/dingv/financial-stylized-facts/actions/runs/41599262401) 已通过（2m1s）。随后功能候选 `fe7ed27` 的 [运行 41601347836](https://github.com/dingv/financial-stylized-facts/actions/runs/41601347836) 也实际成功（2m22s，job 125800567820）。这是 Linux/Python3.12 新建 Conda 的证据，不外推为其他平台已验证。
 - `/tmp/fsf-final-real-20261103/` 八份报告约 21.93 秒、27,379,748 字节；原行情哈希未变。`numerical-audit.json` 独立采样/收益/ACF/峰度核对通过；最大 ACF 误差约 2.22e-16，峰度约 2.84e-14。没有新模拟、付费下载、合并路径或调整参数。
 - 浏览器实际打开安装后生成的单文件 HTML，从 GARCH 切换到 Gaussian 后，标题、峰度、摘要与图替换；新尾部附录默认关闭，点击后显示。没有把模板源码检查当作交互验收。
-- 发布扫描 `/tmp/fsf-release-audit-20261103/audit.json`：75 个当前文件、225 个可达历史 blob，没有命中所设凭据/大文件/数据路径规则；39 个 Python distribution 的许可元数据及文件哈希保存。最终提交后应再扫一次以覆盖新增验收记录。规则扫描不是“绝无秘密”的保证。
+- 发布扫描 `/tmp/fsf-release-audit-20261103/audit.json`：75 个当前文件、225 个可达历史 blob，没有命中所设凭据/大文件/数据路径规则；39 个 Python distribution 的许可元数据及文件哈希保存。功能候选提交后再扫 `/tmp/fsf-release-final-audit-20261103/audit.json`：76 个文件、249 个历史 blob，仍无规则命中；相对文档链接无断链。规则扫描不是“绝无秘密”的保证。
 - 方法引用、数据使用边界、许可证候选说明、CITATION、CHANGELOG、CONTRIBUTING 和安装路径已准备。没有根目录 LICENSE 授权声明，没有公开仓库、tag/release 或 PyPI 上传。
 
 ## 验收之外的后续增强
 
 交易日历、日内季节性模型、更多市场/供应商、GB 级输入性能、更多平台、尾指数模型比较、GARCH 参数不确定性及多市场整体推断。它们已作为范围限制公开说明，不以占位结果冒充实现，也不以无限增加估计器替代当前首版交付。
+
+## 验收结论
+
+本轮授权目标已完成：方法、实现、适用统计证据、测试、真实多市场验证、演示、安装包和可公开前审阅的材料均具备。核心代码固定于 fe7ed27，后续验收记录提交只改文档。最终源码包与 wheel 在服务器 `/tmp/fsf-first-release-20261103/`，其中 manifest.json 记录实际 Git 提交及哈希；它是私有候选制品，不是已经公开的 release。
+
+仍需维护者决定的是明确留待确认的正式发布、许可证署名等动作，而不是普通开发选择。有限样本、适用性、数据权利和未支持平台等边界按原样保留；没有为了达标筛选样本或声称所有统计事实成立。
