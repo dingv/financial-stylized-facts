@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+MSFT,observed,10,326,3260,9,33,1.083916083916084,0.9015384615384615,1.1447086247086247,0.172,0.516,False,computed,
+MSFT,observed,30,108,3240,29,33,1.3738317757009346,0.7621070518266779,1.3126593033135088,0.014,0.042,True,computed,
+MSFT,observed,60,54,3240,29,33,2.248713550600342,0.7049742710120066,1.445969125214408,0.001,0.003,True,computed,

@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+EUR/USD,observed,1,computed,,199,0,0.005,0.005,1.0,True,excess_kurtosis,1.6153178337436795,-0.13928953694709442,0.15000192138581625,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+EUR/USD,observed,1,computed,,199,0,0.005,0.005,1.0,True,tail_probability_3sigma,0.010379746835443038,0.0015063291139240506,0.004316455696202527,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+EUR/USD,observed,1,computed,,199,0,0.005,0.005,1.0,True,residual_q10,8.81736384246138,2.868395333617947,21.506121401823723,0.505,0.505,0.505,"[0.43095093094181725, 0.5739982339673733]",100
+EUR/USD,observed,1,computed,,199,0,0.005,0.005,1.0,True,squared_residual_q10,3.4672168013476052,3.1316522288854785,21.025364653035986,0.965,0.965,0.965,"[0.9288700182456207, 0.9857426072826583]",192

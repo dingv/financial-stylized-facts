@@ -4,7 +4,7 @@ type: software
 title: "Financial Stylized Facts"
 authors:
   - name: "dingwei"
-version: "0.14.0.dev0"
+version: "0.15.0.dev0"
 repository-code: "https://github.com/dingv/financial-stylized-facts"
 url: "https://github.com/dingv/financial-stylized-facts"
 abstract: "Cross-market diagnostics for Cont's eleven financial stylized facts, with readable reports and reproducible numerical exports."

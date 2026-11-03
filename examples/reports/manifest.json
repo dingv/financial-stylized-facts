@@ -6,9 +6,17 @@
     "n_returns": 3269,
     "excess_kurtosis": 105.75802536354945,
     "report": "AAPL.html",
-    "report_sha256": "b67dee56b8da054c76e42ca381d261a12e09135f23506e144c5161cd089a47f1",
+    "report_sha256": "d4d8d7ccc56ff2a36e55cbee053ed140e80871472c1dffeef26c53cd29bb6112",
+    "summary": "AAPL-summary.csv",
+    "summary_sha256": "6ec44eccc3cfc75d8960958a68e8d0bb6a631d91c26beb11959be6db5b69ead6",
     "assessment": "AAPL-assessment.csv",
-    "assessment_sha256": "8c3575f51744ee95861fc99ca8fc4e270e247749199256c1c0ba1e740041bb3d"
+    "assessment_sha256": "f83fd4c85e8877dd53ddc177f5915ef0548a4d82eb1e122d15e718b4b08d1ad7",
+    "intermittency": "AAPL-intermittency.csv",
+    "intermittency_sha256": "d31dd95fc0919184d89b7a4e53e382c8f9284501d2ac06aad06971758ba3e3ca",
+    "conditional_inference": "AAPL-conditional-inference.csv",
+    "conditional_inference_sha256": "901ed492f5e7d75334fc165caa1c40170e5fada5c4d1a448bb9a20d89e24e0d5",
+    "decay_models": "AAPL-decay-models.csv",
+    "decay_models_sha256": "951290fd34c2fa14f40f6e05790f0a1b55498052d28bd0c99dc6ec735b1d0dc3"
   },
   {
     "dataset": "MSFT",
@@ -17,9 +25,17 @@
     "n_returns": 3269,
     "excess_kurtosis": 9.137434735582286,
     "report": "MSFT.html",
-    "report_sha256": "bc3711674ee204d83e0e161cb2b7acd7f9d2f1a04b7af680a3f6e8e61274944d",
+    "report_sha256": "8084f0b5850cf12f077402549217806e5c77b9976bdb45d8fe3d65034a520597",
+    "summary": "MSFT-summary.csv",
+    "summary_sha256": "723daba0ebef3ae20be437b0e9b1a363dd57d07c0989fb9cbcecdf70f8d0c5ad",
     "assessment": "MSFT-assessment.csv",
-    "assessment_sha256": "66a39a89a5c84d8ce18ac964d2f7709d119409ac98892d94d6a6076275e3678b"
+    "assessment_sha256": "3467456f919bf5679656a3ab2f90cdfcdc1fb004530376353d925720d7aed1d4",
+    "intermittency": "MSFT-intermittency.csv",
+    "intermittency_sha256": "299a5f0ccc115053101629a64b01accf95d4ed15e659c14ef337ae72863338d9",
+    "conditional_inference": "MSFT-conditional-inference.csv",
+    "conditional_inference_sha256": "9bd55c6cdfcc816625a086bf5f8cfa6b67f31d0a1a0e76537734a472955d62a0",
+    "decay_models": "MSFT-decay-models.csv",
+    "decay_models_sha256": "bd32bfc9cda6557170c2a6be5376bf33926a6b6d8ff381fa48907013be348340"
   },
   {
     "dataset": "EURUSD",
@@ -28,9 +44,17 @@
     "n_returns": 4000,
     "excess_kurtosis": 1.7744301204262385,
     "report": "EURUSD.html",
-    "report_sha256": "c99efea467821c7e613abd68409efc0fab7db959277d27bb040255b8f9d05fd7",
+    "report_sha256": "aa022372985e16c5404474581c6b705b18817e976cc4dd5e2c1c868e855b846e",
+    "summary": "EURUSD-summary.csv",
+    "summary_sha256": "d35fda9122440661df3911b4c3bfc33ddd8aee3bc44af10ed1f3e24dfbbd697d",
     "assessment": "EURUSD-assessment.csv",
-    "assessment_sha256": "6159d300c1825bdb7c7ca671624f88cae9ae8fe6db6c8bf5b5fe5b50c2e0c41c"
+    "assessment_sha256": "9765cce1a9723911e6d7f79ca4976ada57ef91dff9706e6aaaf23698521ada5e",
+    "intermittency": "EURUSD-intermittency.csv",
+    "intermittency_sha256": "8012e404da9b6adf44d23f950308478497d7383600ddf0fa2f68c3b312a226fd",
+    "conditional_inference": "EURUSD-conditional-inference.csv",
+    "conditional_inference_sha256": "10aadb29ec6b834e0a0287dd4026d2241640e7aa1cb2cc9903b85f6f3f626895",
+    "decay_models": "EURUSD-decay-models.csv",
+    "decay_models_sha256": "c8389bd186aee8a3b117da8cf44e5144e85b141fd59e5e32f445c7d876485b5f"
   },
   {
     "dataset": "USDJPY",
@@ -39,8 +63,16 @@
     "n_returns": 4000,
     "excess_kurtosis": 4.108144755627563,
     "report": "USDJPY.html",
-    "report_sha256": "5be47210af465cf3a6350ce06cabe6c2bb4ff21ca0d909783bdcea56d1980768",
+    "report_sha256": "571561e63fc5504fd79c6af578ba334ff181e130b0211fd2674b3ab2c9e6c928",
+    "summary": "USDJPY-summary.csv",
+    "summary_sha256": "57e3e110716e9c992049a5762b0822c3cc72c9317251dd0981a235c7c403ca36",
     "assessment": "USDJPY-assessment.csv",
-    "assessment_sha256": "dd73e3564c53393c5daaa56b2071eb3dae8a30a270ad5354ddd2e9cdb5eeaf7b"
+    "assessment_sha256": "493cfe837ba299913032c12ab9b898bb3c5f955dcfe800a96b7ba7dd39078c15",
+    "intermittency": "USDJPY-intermittency.csv",
+    "intermittency_sha256": "3ce47b193c4482f7e44cfab897818d93d2207a5b44d45c1e9ca56a68b905ce86",
+    "conditional_inference": "USDJPY-conditional-inference.csv",
+    "conditional_inference_sha256": "f17e5f08eb6bb03ec350e617af5df7f7960dfa6c7b6b796b57db62a7cb59bf84",
+    "decay_models": "USDJPY-decay-models.csv",
+    "decay_models_sha256": "53c2f5adcb2d502e70733a5876c063458b2df7664e2d5ce7ef7d2e8acf833f35"
   }
 ]

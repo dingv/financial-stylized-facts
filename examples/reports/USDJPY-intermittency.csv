@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+USD/JPY,observed,10,400,4000,0,40,1.3032581453634084,0.9022556390977443,1.1027568922305766,0.001,0.003,True,computed,
+USD/JPY,observed,30,133,3990,10,40,1.5609848484848483,0.8053030303030302,1.258712121212121,0.001,0.003,True,computed,
+USD/JPY,observed,60,66,3960,40,40,1.5169230769230773,0.7046153846153846,1.3646153846153848,0.011,0.033,True,computed,

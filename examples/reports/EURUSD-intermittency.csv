@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+EUR/USD,observed,10,400,4000,0,40,1.0526315789473681,0.9022556390977443,1.1528822055137844,0.252,0.756,False,computed,
+EUR/USD,observed,30,133,3990,10,40,1.1579545454545457,0.8053030303030303,1.258712121212121,0.118,0.354,False,computed,
+EUR/USD,observed,60,66,3960,40,40,1.669230769230769,0.7046153846153846,1.3646153846153848,0.001,0.003,True,computed,

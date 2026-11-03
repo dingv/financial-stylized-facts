@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+AAPL,observed,10,326,3260,9,33,1.0839160839160837,0.9015384615384615,1.1447086247086247,0.172,0.516,False,computed,
+AAPL,observed,30,108,3240,29,32,1.2780373831775698,0.7733644859813085,1.27803738317757,0.038,0.11399999999999999,False,computed,
+AAPL,observed,60,54,3240,29,32,1.688679245283019,0.6698113207547173,1.3702830188679251,0.005,0.015,True,computed,

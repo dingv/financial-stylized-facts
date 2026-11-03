@@ -55,7 +55,27 @@ class AnalysisConfig:
     long_memory_max_windows: int = 128
     long_memory_max_work: int = 20000000
 
+    intermittency_windows: tuple[int, ...] = (10, 30, 60)
+    intermittency_quantile: float = .99
+    permutation_reps: int = 999
+    permutation_max_work: int = 20000000
+    conditional_bootstrap_reps: int = 199
+    conditional_bootstrap_max_work: int = 2000000
+
     def validate(self):
+        windows = self.intermittency_windows
+        if not isinstance(windows, (list, tuple)) or not windows or len(windows)>6 or any(isinstance(w,bool) or not isinstance(w,Integral) or not 2<=w<=10000 for w in windows) or list(windows)!=sorted(set(windows)):
+            raise ValueError("intermittency_windows 为严格递增的 2–10000 整数，最多 6 项")
+        if isinstance(self.intermittency_quantile,bool) or not isinstance(self.intermittency_quantile,Real) or not .9<=self.intermittency_quantile<1:
+            raise ValueError("intermittency_quantile 必须在 [0.9,1) 内")
+        for name in ["permutation_reps", "conditional_bootstrap_reps"]:
+            value = getattr(self,name)
+            if isinstance(value,bool) or not isinstance(value,Integral) or (value != 0 and not 99<=value<=9999):
+                raise ValueError(f"{name} 为 0（关闭）或 99–9999")
+        for name in ["permutation_max_work", "conditional_bootstrap_max_work"]:
+            value = getattr(self,name)
+            if isinstance(value,bool) or not isinstance(value,Integral) or value<1:
+                raise ValueError(f"{name} 必须为正整数")
         if self.long_memory not in {"on","off"}:
             raise ValueError("long_memory 必须为 on/off")
         for name in ["long_memory_min_points","long_memory_max_windows","long_memory_max_work"]:

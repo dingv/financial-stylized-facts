@@ -73,7 +73,7 @@ def fit_garch(returns, max_iter=500, burn=50, max_lag=30, min_pairs=20):
     return result, arrays
 
 
-def conditional_diagnostics(sampled, config):
+def conditional_diagnostics(sampled, config, seed_key=""):
     result = {"status": "disabled", "reason": "本次关闭条件厚尾模块", "model": "constant_mean_gaussian_qmle_garch_1_1",
               "arch_version": None, "segments": [], "n_fit": 0, "n_evaluated": 0,
               "total_valid_returns": int(sampled["log_return"].notna().sum()),
@@ -87,7 +87,10 @@ def conditional_diagnostics(sampled, config):
     except ImportError:
         result.update(status="dependency_missing", reason="未安装可选依赖 arch；安装本库的 conditional 扩展后可启用")
         return result, plots
+    from .conditional_inference import conditional_reference, finalize_conditional
     attempted, consumed = 0, 0
+    reference_budget = [0]
+    planned_family = sum(len(g)>=config.garch_min_points for _,g in continuous_segments(sampled))
     for number, (session, frame) in enumerate(continuous_segments(sampled), 1):
         row = {"segment": number, "session_id": session, "n": len(frame),
                "start": str(frame.timestamp.iloc[0]), "end": str(frame.timestamp.iloc[-1])}
@@ -102,6 +105,9 @@ def conditional_diagnostics(sampled, config):
                 fit, arrays = fit_garch(frame.log_return.to_numpy(), config.garch_max_iter, config.garch_burn, config.max_lag, config.min_pairs)
                 row.update(fit)
                 if arrays is not None:
+                    row["reference_test"] = conditional_reference(frame.log_return.to_numpy(), fit, arrays, config,
+                                                                  seed_key+f":{number}", reference_budget)
+                    row['interpretation'] = 'in_sample_metrics_with_refitted_gaussian_reference' if row['reference_test']['status']=='computed' else 'in_sample_descriptive_reference_unavailable'
                     result["n_fit"] += len(frame)
                     result["n_evaluated"] += len(arrays["raw"])
                     plots.append({"segment": number, "timestamps": frame.timestamp.iloc[config.garch_burn:].tolist(), **arrays})
@@ -116,4 +122,7 @@ def conditional_diagnostics(sampled, config):
         result.update(status="computed" if successful == len(result["segments"]) else "partially_computed", reason=None)
     else:
         result.update(status="not_computable", reason="没有完成可用的 GARCH 拟合；请查看各段原因")
+    finalize_conditional(result, planned_family)
+    result['uncertainty'] = {'method':'gaussian_garch_simulate_refit', 'planned_segment_family':planned_family,
+                             'estimated_work':reference_budget[0], 'replications':config.conditional_bootstrap_reps}
     return result, plots

@@ -86,6 +86,12 @@ def main(argv=None):
     analyze.add_argument("--long-memory-min-points", type=int, default=512)
     analyze.add_argument("--long-memory-max-windows", type=int, default=128)
     analyze.add_argument("--long-memory-max-work", type=int, default=20000000)
+    analyze.add_argument("--intermittency-windows", type=int, nargs="+", default=[10,30,60])
+    analyze.add_argument("--intermittency-quantile", type=float, default=.99)
+    analyze.add_argument("--permutation-reps", type=int, default=999)
+    analyze.add_argument("--permutation-max-work", type=int, default=20000000)
+    analyze.add_argument("--conditional-bootstrap-reps", type=int, default=199)
+    analyze.add_argument("--conditional-bootstrap-max-work", type=int, default=2000000)
     analyze.add_argument("--title", default="金融市场 · 统计评估报告")
     args = parser.parse_args(argv)
     try:

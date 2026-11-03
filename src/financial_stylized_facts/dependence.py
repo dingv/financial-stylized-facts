@@ -89,4 +89,6 @@ def dependence_diagnostics(sampled, config):
     persistence = {"status": full["status"], "reason": full["reason"], "full": full, "blocks": blocks,
                    "requested_max_lag": config.volatility_max_lag, "split_method": "chronological_equal_observation_slots",
                    "long_memory_test": long_memory_diagnostics(sampled,config)}
+    from .decay import decay_diagnostics
+    persistence['decay_comparison'] = decay_diagnostics(persistence, config)
     return {"leverage": leverage, "volatility_persistence": persistence}

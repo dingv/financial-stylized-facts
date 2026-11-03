@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+USD/JPY,observed,1,computed,,199,0,0.005,0.005,1.0,True,excess_kurtosis,3.268439643211206,-0.1574684630176157,0.14887082978638744,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+USD/JPY,observed,1,computed,,199,0,0.005,0.005,1.0,True,tail_probability_3sigma,0.01189873417721519,0.0015063291139240506,0.004316455696202527,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+USD/JPY,observed,1,computed,,199,0,0.005,0.005,1.0,True,residual_q10,8.893361424142668,3.051293915358064,21.04246965944389,0.53,0.53,0.53,"[0.4558007450730525, 0.5986400137277377]",105
+USD/JPY,observed,1,computed,,199,0,0.005,0.005,1.0,True,squared_residual_q10,4.913017025763186,3.9427682901883987,20.11325948960345,0.9,0.9,0.9,"[0.849053874252671, 0.9375226177692939]",179

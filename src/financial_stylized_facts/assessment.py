@@ -5,13 +5,15 @@ claims require the same sign across every configured sensitivity setting.
 """
 from math import erfc, sqrt
 
+from .decay import persistence_evidence
+
 from .findings import at_lag, lag_label, number
 
-RULE_VERSION = "1"
+RULE_VERSION = "2"
 NORMAL_TAIL_3 = erfc(3 / sqrt(2))
 FACT_NAMES = ["收益线性相关较弱", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集",
               "条件厚尾", "波动相关缓慢衰减", "杠杆效应", "成交量与波动相关", "时间尺度不对称"]
-LEVELS = {"interval": "区间证据", "descriptive": "描述性结果", "unavailable": "未评估"}
+LEVELS = {"asymptotic": "渐近检验与模型比较", "test": "模拟参照检验", "model": "衰减模型比较", "interval": "区间证据", "descriptive": "描述性结果", "unavailable": "未评估"}
 
 
 def block_evidence(group, config, metric, reference=0.):
@@ -141,11 +143,20 @@ def assess(group, config):
             evidence={"monotonic": monotonic, "scales": scales, "minimum_returns_per_scale": 100})
 
     it = group["intermittency"]
-    if it["status"] != "computed" or not it["rms_valid_windows"]:
-        unavailable(5, it["reason"] or "没有完整 RMS 窗口。")
+    fi = it.get('inference', {})
+    tested = [r for r in fi.get('rows',[]) if r['status']=='computed']
+    significant = [r['window'] for r in tested if r['reject']]
+    if tested:
+        supported = len(significant)>=2
+        text = f"{len(significant)}/{len(fi['rows'])} 个预设窗口的极端事件计数比随机排列更集中（校正 p≤0.05）。"
+        add(5, 'supported' if supported else 'indicative' if significant else 'not_detected',
+            '极端波动集中出现' if supported else '局部集中迹象' if significant else '未检出超出随机排列的集中', text,
+            [metric('显著窗口数',len(significant)),metric('极端事件数',fi['total_events']),
+             metric('最小校正 p',min(r['family_adjusted_p'] for r in tested))],level='test',evidence=fi)
     else:
-        add(5, "descriptive", "波动片段已记录", f"超过 {config.burst_threshold:g}σ 的 {it['exceedance_count']} 次变化，形成 {it['episodes']['observed_count']} 个连续片段；结合 RMS 图观察平静与剧烈时段。",
-            [metric("完整 RMS 窗口", it["rms_valid_windows"]), metric("最长超阈值片段", it["episodes"]["max_observed_length"], "步")])
+        reasons = list(dict.fromkeys(r['reason'] for r in fi.get('rows',[]) if r.get('reason')))
+        add(5, 'insufficient_data', '间歇性检验不可用', '；'.join(reasons) or fi.get('reason') or '未运行极端事件置换检验。',
+            [metric('完整 RMS 窗口',it['rms_valid_windows'])],level='unavailable',evidence=fi)
 
     a, s = at_lag(acf["absolute_return"], 1), at_lag(acf["squared_return"], 1)
     ea, es = [lag_evidence(group, config, "acf", p) for p in ("absolute_return", "squared_return")]
@@ -181,22 +192,55 @@ def assess(group, config):
         text = f"{sum(known)}/{len(fitted)} 个可用拟合段的残差同时呈正超额峰度和偏高的 3σ 尾概率。"
         if missing:
             text += f" 其中 {missing} 段的尾部统计不可计算。"
+        references=[x.get('reference_test',{}) for x in fitted]
+        computed=[r for r in references if r.get('status')=='computed']
+        supported=sum(r.get('tail_supported',False) for r in references)
+        failed_adequacy=sum(r.get('adequacy_rejected',False) for r in computed)
+        if computed:
+            complete=len(computed)==len(ct['segments'])
+            conclusion='supported' if complete and supported==len(computed) else 'mixed' if supported or failed_adequacy else 'not_detected' if complete else 'inconclusive'
+            label='条件厚尾有检验支持' if conclusion=='supported' else '部分段支持 / 模型需检查' if conclusion=='mixed' else '未拒绝高斯 GARCH 尾部参照' if conclusion=='not_detected' else '检验覆盖不完整'
+            text=f"{supported}/{len(ct['segments'])} 个连续段在重新拟合的高斯 GARCH 参照下，同时检出偏高峰度和 3σ 尾概率。"
+            if failed_adequacy:
+                text+=f" {failed_adequacy} 段残差仍有相关，不能归因于创新项厚尾。"
+        unavailable_reasons=list(dict.fromkeys(r.get('reason') for r in references if r.get('reason')))
+        if not computed and unavailable_reasons:
+            text+=' 检验未完成：'+'；'.join(unavailable_reasons)+'。'
         add(7, conclusion, label, text,
-            [metric("评估收益数", ct["n_evaluated"]), metric("原始有效收益数", ct["total_valid_returns"])],
-            level="descriptive" if known else "unavailable", evidence={"segments": [{"segment":x["segment"], "tail_pattern":flag} for x,flag in zip(fitted, signs)]},
-            notes=["近单位持续性拟合：请结合残差相关图阅读。"] if any("near_unit_persistence" in x.get("flags", []) for x in fitted) else [])
+            [metric('评估收益数',ct['n_evaluated']),metric('完成模拟检验段数',len(computed)),
+             metric('最小校正尾部 p',min((r['family_adjusted_tail_p'] for r in computed),default=None))],
+            level='test' if computed else 'descriptive' if known else 'unavailable',
+            evidence={'segments':[{'segment':x['segment'],'tail_pattern':flag,'reference_test':ref} for x,flag,ref in zip(fitted,signs,references)]})
 
     vp = group["volatility_persistence"]
     endpoint = at_lag(vp["full"], config.volatility_max_lag)
     lm = vp["long_memory_test"]
-    if endpoint is None:
-        unavailable(8, "配置终点的相关不可计算；长范围图保留可用部分。")
+    decay=vp.get('decay_comparison',{})
+    full=[r for r in decay.get('rows',[]) if r['period']=='full' and r['status']=='computed']
+    if full:
+        primary=full[0];power=primary['models']['power'];exp=primary['models']['exponential']
+        stable=decay['stable_slow_power_pattern']
+        persistence_test=persistence_evidence(lm)
+        preference=[r['preferred'] for r in full]
+        label='跨区间、分段均偏向缓慢幂律衰减' if stable else '全路径偏向幂律，分段支持不足' if len(full)==2 and all(r.get('slow_power_pattern') for r in full) else '全路径更符合指数衰减' if len(full)==2 and all(p=='exponential' for p in preference) else '衰减形式未分出稳定优劣'
+        text=f"预设 lag {primary['start_lag']}–{primary['end_lag']} 的幂律指数 β={number(power['shape'])}；幂律 / 指数拟合 RMSE 分别为 {number(power['rmse'])} / {number(exp['rmse'])}。"
+        text+=' 比较同时检查远端滞后预测误差和时间分段稳定性。'
+        if persistence_test['stable_upper_rejection']:
+            label='长程持续性有检验支持'
+            text+=' 全段及半段的各带宽修正 R/S 均拒绝短期依赖参照，方向为持续性偏强。'
+        elif persistence_test['full_upper_rejection']:
+            text+=' 全段 R/S 有持续性证据，但半段结果未一致支持。'
+
+        add(8,'supported' if persistence_test['stable_upper_rejection'] else 'indicative' if stable else 'mixed',label,text,
+            [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections')),
+             metric('幂律指数 β',power['shape']),metric('幂律 R²',power['r_squared'])],
+            level='asymptotic' if persistence_test['stable_upper_rejection'] else 'model',evidence={**decay,'persistence_test':persistence_test},
+            notes=['有限滞后内的曲线比较；长期记忆的辅助检验另保存在 R/S 结果中。'])
+    elif endpoint is None:
+        unavailable(8, decay.get('reason') or '配置范围的相关不可计算。')
     else:
-        text = f"{lag_label(config, config.volatility_max_lag)} 处绝对收益 ACF 为 {number(endpoint)}。"
-        if lm.get("computed_tests", 0):
-            text += f" 修正 R/S 有 {lm['family_rejections']}/{lm['computed_tests']} 个组合拒绝短期依赖参照。"
-        add(8, "descriptive", "长期持续性待确认", text, [metric("终点 ACF", endpoint), metric("R/S 修正后拒绝数", lm.get("family_rejections"))],
-            notes=["这组结果未拟合衰减指数，也未确认长记忆。"])
+        add(8,'insufficient_data','衰减拟合数据不足',decay.get('reason') or '未运行预设范围的衰减比较。',
+            [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections'))],level='unavailable',evidence=decay)
 
     ev = [lag_evidence(group, config, "leverage", p) for p in ("absolute", "squared")]
     negative = sorted(set(ev[0]["negative_lags"]) & set(ev[1]["negative_lags"]))
@@ -242,6 +286,8 @@ def assess(group, config):
         add(11, c, label, text, [metric("相邻粗区间方向差", row["difference"])],
             level="interval" if neg or pos else "descriptive", evidence=ev)
 
+    for key,status in [('5',fi.get('status','not_computable')),('7',ct['status']),('8',decay.get('status','not_computable'))]:
+        rows[key]['computation_status']=status
     # Put the actual supporting lags beside the verdict, rather than letting a
     # lag-1 display value appear to be the evidence for a multi-lag conclusion.
     for i, supporting in [(1, selected), (6, common), (9, negative), (11, sorted(neg + pos) if row.get("difference") is not None else [])]:

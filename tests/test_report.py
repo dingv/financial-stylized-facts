@@ -32,12 +32,12 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     text = (out / "index.html").read_text()
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
-    assert text.count("data:image/png;base64,") == 20
+    assert text.count("data:image/png;base64,") == 24
     assert "path-select" in text and "评估总览" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
-    assert json.loads(numerical)["coverage"][6]["status"] == "descriptive_only"
-    assert result["schema_version"] == "0.14"
+    assert json.loads(numerical)["coverage"][6]["status"] == "parametric_bootstrap_test"
+    assert result["schema_version"] == "0.15"
     assert len(pd.read_csv(out / "summary.csv")) == 2
     assessments = pd.read_csv(out / "assessment.csv", keep_default_na=False)
     assert len(assessments) == 22
@@ -56,7 +56,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert "通用教学文档" in text
     assert all(len(g["findings"]["by_fact"]) == 11 for g in result["groups"])
     assert result["groups"][0]["findings"]["by_fact"]["2"]["status"] == "zero_variance"
-    assert len(list((out / "figures").glob("*.png"))) == 22
+    assert len(list((out / "figures").glob("*.png"))) == 26
     tail = pd.read_csv(out/"tail_diagnostics.csv")
     assert set(tail.path_id) == {"constant", "gauss"}
     assert tail[tail.path_id == "constant"].status.eq("zero_variance").all()
@@ -64,17 +64,17 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert all((out/g["figures"]["tail_diagnostics"]).exists() for g in result["groups"])
     assert len(pd.read_csv(out / "scales.csv")) == 8
     assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
-    assert all(x["status"] == "descriptive_only" for x in result["coverage"][:6])
-    assert result["coverage"][7]["status"] == "descriptive_with_optional_short_memory_test"
+    assert result["coverage"][4]["status"] == "randomization_test"
+    assert result["coverage"][7]["status"] == "finite_range_model_comparison_and_short_memory_test"
     lm = pd.read_csv(out/"long_memory.csv")
     assert lm["statistic"].isna().all()
     assert lm["status"].eq("insufficient_data").all()
     assert "波动相关缓慢衰减" in text
-    assert result["coverage"][8]["status"] == "descriptive_only"
+    assert result["coverage"][8]["status"] == "descriptive_and_interval_assessment"
     assert len(pd.read_csv(out / "leverage.csv")) > 0
     assert len(pd.read_csv(out / "volatility_acf.csv")) > 0
-    assert result["coverage"][9]["status"] == "descriptive_only"
-    assert result["coverage"][10]["status"] == "descriptive_only"
+    assert result["coverage"][9]["status"] == "descriptive_and_interval_assessment"
+    assert result["coverage"][10]["status"] == "descriptive_and_interval_assessment"
     assert all(g["volume_volatility"]["status"] == "not_applicable" for g in result["groups"])
     assert len(pd.read_csv(out / "volume.csv")) == 2
     assert "coarse_factor" in pd.read_csv(out / "timescale.csv").columns
@@ -118,7 +118,7 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert len(result["groups"][0]["volatility_persistence"]["blocks"]) == 3
     assert result["groups"][0]["volume_volatility"]["n"] == 60
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
-    assert (out/"index.html").read_text().count("data:image/png;base64,") == 11
+    assert (out/"index.html").read_text().count("data:image/png;base64,") == 13
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
 
 
@@ -132,6 +132,9 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     result = analyze_csv(p, out, AnalysisConfig(frequency="1min", coarse_factor=2))
     conditional = result["groups"][0]["conditional_tails"]
     assert conditional["status"] == "computed"
+    assert result['groups'][0]['intermittency']['uncertainty']['reference']=='group.intermittency.inference'
+    assert conditional['segments'][0]['interpretation']!='in_sample_descriptive_only'
+
     segment = conditional["segments"][0]
     residuals = pd.read_csv(out/segment["residual_file"])
     assert len(residuals) == 650
@@ -147,7 +150,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
-    assert text.count("data:image/png;base64,") == 11
+    assert text.count("data:image/png;base64,") == 13
     fp = pd.read_csv(out/"first_passage.csv")
     assert len(fp) == 120 and set(fp.direction) == {"up","down"}
     assert fp.elapsed_seconds.iloc[-1] == 1200

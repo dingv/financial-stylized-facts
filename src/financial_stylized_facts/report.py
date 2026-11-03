@@ -453,6 +453,42 @@ def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
     return paths, embedded
 
 
+def _evidence_plots(diagnostics, config, directory, group_id):
+    paths,images={},{}
+    fig=_figure(height=3.2);ax=fig.subplots()
+    rows=[r for r in diagnostics['intermittency']['inference']['rows'] if r['status']=='computed']
+    if rows:
+        x=[r['window'] for r in rows]
+        ax.fill_between(x,[r['null_lower'] for r in rows],[r['null_upper'] for r in rows],color='#dce7ef',label='95% random-order reference')
+        ax.plot(x,[r['fano'] for r in rows],'o-',color='#2563a6',label='Observed')
+        ax.legend(frameon=False,fontsize=9)
+    else:
+        ax.text(.5,.5,'Permutation test unavailable; see reason',transform=ax.transAxes,ha='center')
+    ax.set(xlabel='Window (base return observations)',ylabel='Count variance / mean',title='Extreme-event concentration')
+    _style(ax);paths['fano']=f'figures/{group_id}-fano.png';images['fano']=_save(fig,directory/paths['fano'])
+    fig=_figure(height=3.5);axes=fig.subplots(1,2)
+    comparison=diagnostics['volatility_persistence']['decay_comparison']
+    acf=diagnostics['volatility_persistence']['full']
+    for ax,start in zip(axes,(1,5)):
+        row=next(r for r in comparison['rows'] if r['period']=='full' and r['start_lag']==start)
+        if row['status']=='computed':
+            k=np.arange(start,row['end_lag']+1)
+            y=dict(zip(acf['lags'],acf['values']))
+            ax.plot(k,[y[i] for i in k],color='#9aa3ad',label='Observed ACF',linewidth=1)
+            for kind,color in [('power','#2563a6'),('exponential','#c77d55')]:
+                f=row['models'][kind]
+                label=f"Power: beta={f['shape']:.2f}" if kind=='power' else f"Exp: lambda={f['shape']:.3f}"
+                ax.plot(f['lags'],f['predicted'],color=color,label=label,linewidth=1.7)
+            ax.axvline(row['train_end_lag'],color='#aaa',linestyle=':',linewidth=.8)
+            ax.legend(frameon=False,fontsize=8)
+        else:
+            ax.text(.5,.5,'Insufficient range / pairs',transform=ax.transAxes,ha='center',fontsize=9)
+        ax.axhline(0,color='#ccc',linewidth=.7);ax.set(xlabel='Lag (base return observations)',ylabel='Absolute-return ACF',title=f'Predefined range: {start}–{config.volatility_max_lag}')
+        _style(ax)
+    paths['decay']=f'figures/{group_id}-decay.png';images['decay']=_save(fig,directory/paths['decay'])
+    return paths,images
+
+
 def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统计评估报告", source_provenance=None):
     """Analyze canonical price CSV, writing a new output directory only.
 
@@ -480,7 +516,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
         diagnostics.update(dependence_diagnostics(sampled, config))
         diagnostics.update(activity_diagnostics(sampled, config))
         diagnostics["first_passage"] = first_passage_diagnostics(sampled, config)
-        conditional, residual_arrays = conditional_diagnostics(sampled, config)
+        from .intermittency import intermittency_test
+        diagnostics['intermittency']['inference'] = intermittency_test(sampled,config,str(asset)+"\0"+str(path))
+        diagnostics['intermittency']['uncertainty'] = {'status':diagnostics['intermittency']['inference']['status'],
+            'reference':'group.intermittency.inference','scope':'极端事件 Fano 置换检验；不覆盖 RMS 或 3σ 片段长度'}
+        conditional, residual_arrays = conditional_diagnostics(sampled, config, str(asset)+"\0"+str(path))
         diagnostics["conditional_tails"] = conditional
         diagnostics["uncertainty"] = uncertainty_diagnostics(sampled, config, seed_key=str(asset)+"\0"+str(path))
         diagnostics["dependence_uncertainty"] = dependence_uncertainty(sampled, config)
@@ -497,13 +537,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.14", "assessment_rule_version": RULE_VERSION, "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.15", "assessment_rule_version": RULE_VERSION, "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_with_optional_short_memory_test" if i==8 else "descriptive_only"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "finite_range_model_comparison_and_short_memory_test" if i==8 else "randomization_test" if i==5 else "parametric_bootstrap_test" if i==7 else "descriptive_and_interval_assessment"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -524,6 +564,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     observation_rows = []
     assessment_rows = []
     tail_rows = []
+    fano_rows, reference_rows, decay_rows = [], [], []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, diagnostics["dependence_uncertainty"], config, output_dir, group_id)
@@ -545,7 +586,23 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
         new_paths, new_images = _conditional_plots(diagnostics["conditional_tails"], residual_arrays, config, output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)
+        new_paths,new_images = _evidence_plots(diagnostics,config,output_dir,group_id)
+        paths.update(new_paths);embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
+        for row in diagnostics['intermittency']['inference']['rows']:
+            fano_rows.append({'asset_id':asset,'path_id':path,**row})
+        for segment in diagnostics['conditional_tails']['segments']:
+            ref=segment.get('reference_test',{})
+            for test in ref.get('tests',[]) or [{}]:
+                reference_rows.append({'asset_id':asset,'path_id':path,'segment':segment['segment'],
+                    'status':ref.get('status',segment['status']),'reason':ref.get('reason',segment.get('reason')),
+                    'replications':ref.get('reps'),'failed_refits':ref.get('failed_reps'),
+                    'joint_tail_p':ref.get('joint_tail_p'),'family_adjusted_tail_p':ref.get('family_adjusted_tail_p'),
+                    'adequacy_p':ref.get('adequacy_p'),'tail_supported':ref.get('tail_supported'),**test})
+        for row in diagnostics['volatility_persistence']['decay_comparison']['rows']:
+            for kind,fit in row.get('models',{}).items() or [('unavailable',{})]:
+                decay_rows.append({'asset_id':asset,'path_id':path,**{k:v for k,v in row.items() if k!='models'},
+                    'model':kind,**{k:v for k,v in fit.items() if k not in ['lags','predicted','heldout_fit','status','reason']}})
         td = diagnostics["tail_diagnostics"]
         for kind in ["ccdf", "qq"]:
             for row in td[kind] or [{}]:
@@ -645,6 +702,9 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     serialized = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(assessment_rows).to_csv(output_dir / "assessment.csv", index=False)
+    pd.DataFrame(fano_rows).to_csv(output_dir/'intermittency.csv',index=False)
+    pd.DataFrame(reference_rows).to_csv(output_dir/'conditional_inference.csv',index=False)
+    pd.DataFrame(decay_rows).to_csv(output_dir/'decay_models.csv',index=False)
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
     pd.DataFrame(tail_rows).to_csv(output_dir / "tail_diagnostics.csv", index=False)
     pd.DataFrame(observation_rows, columns=["asset_id", "path_id", "fact_id", "status", "text", "limitation", "references"]).to_csv(output_dir/"observations.csv", index=False)

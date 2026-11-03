@@ -85,4 +85,8 @@ for group in result["groups"]:
               fact["label"], fact["evidence_level"], fact["metrics"])
 ```
 
-每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.14 新增 `assessment`，已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
+每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.15 增加间歇性置换检验、条件尾部模拟参照和衰减曲线比较；评估规则版本为 2。已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
+
+三项证据输出：`intermittency.csv`（各窗口 Fano、校正 p、覆盖）、`conditional_inference.csv`（各段残差模拟参照和模型检查）、`decay_models.csv`（各时间段/范围的两模型参数、误差和偏好）。
+
+相关参数：`--intermittency-windows 10 30 60`、`--intermittency-quantile .99`、`--permutation-reps 999`、`--conditional-bootstrap-reps 199`。次数设为 0 可关闭相应随机参照。资源上限为 `--permutation-max-work 20000000`、`--conditional-bootstrap-max-work 2000000`，按每条路径分别计；完整原因保存在 JSON。

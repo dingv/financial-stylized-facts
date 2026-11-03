@@ -68,10 +68,10 @@ result = analyze_csv(
 | 厚尾 | 收益密度、超额峰度、经验尾概率与 Q-Q |
 | 涨跌不对称 | 左右尾、偏度、对称阈值首达时间 |
 | 聚合高斯化 | 不同时间尺度的峰度与分位数距离 |
-| 间歇性 | 滚动 RMS 与大幅波动片段 |
+| 间歇性 | 极端事件 Fano、置换检验与滚动 RMS |
 | 波动聚集 | 绝对收益、平方收益 ACF |
-| 条件厚尾 | GARCH 调整前后的分布与残余相关 |
-| 波动相关缓慢衰减 | 长范围 ACF、分段对照与 Lo 修正 R/S |
+| 条件厚尾 | GARCH 残差、模拟重拟合检验与模型检查 |
+| 波动相关缓慢衰减 | 幂律 / 指数衰减比较、分段稳定性与 Lo 修正 R/S |
 | 杠杆效应 | 收益与前后波动的相关 |
 | 成交量与波动相关 | Pearson、Spearman 与分组图 |
 | 时间尺度不对称 | 粗、细尺度波动的两个时间方向对照 |
@@ -91,3 +91,4 @@ result = analyze_csv(
 3. Newey, W. K., & West, K. D. (1987). [A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix](https://doi.org/10.2307/1913610). *Econometrica*.
 4. Lo, A. W. (1991). [Long-Term Memory in Stock Market Prices](https://doi.org/10.2307/2938368). *Econometrica*.
 5. Jensen, M. H., Johansen, A., & Simonsen, I. (2003). [Inverse statistics in economics: The gain–loss asymmetry](https://doi.org/10.1016/S0378-4371%2802%2901884-8). *Physica A*.
+6. Li, et al. (2025). [MarS: a Financial Market Simulation Engine Powered by Generative Foundation Model](https://arxiv.org/abs/2409.07486). *ICLR*.
