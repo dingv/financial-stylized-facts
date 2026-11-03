@@ -1,6 +1,6 @@
 # 统计实现约定
 
-本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向、条件厚尾与报告导出。其他段落明确标为计划；部分边际与量价统计已有近似区间；完整正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向、条件厚尾与报告导出。首达时间、回撤/回升和修正 R/S 亦已实现；部分边际与量价统计有近似区间，早期相关有 HAC 区间，修正 R/S 有条件性渐近检验；不存在适用于所有事实的统一通过检验。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
@@ -18,7 +18,7 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 矩估计定义 m_j = mean((r-mean(r))^j)，未修正超额峰度 g2=m4/m2²-3。主报告可以使用小样本修正版，必须同时标注估计器和 n；n<4 或方差为零则不可计算。小样本修正不保证消除序列相关导致的偏差。对照 [SciPy kurtosis](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kurtosis.html) 的 fisher=True、bias=False。
 
-当前对每条路径构造 z=(r-mean(r))/std(r,ddof=0)，导出 |z|>2、3、4 的次数及经验比例。计划增加 P(|z|>x)、左右尾和 QQ 图；对数坐标上的零尾概率应留空。高斯参照为 2*sf(x)。超额峰度和有限阈值超额概率均不等于证明数学意义的幂律尾。主峰度采用 SciPy fisher=True、bias=False，同时输出未修正超额峰度及未修正 Pearson 峰度；KDE 使用全样本 Scott 带宽，默认不加高斯曲线。
+当前对每条路径构造 z=(r-mean(r))/std(r,ddof=0)，导出 |z|>2、3、4 的次数及经验比例。0.13 在折叠附录增加 P(|z|>x) 与高斯 Q-Q 对照；左右尾另见涨跌不对称模块。尾阈值为 0 至 6（步长 .05）加实际最大绝对 z，严格超过用 searchsorted(side=right) 计数，零概率在对数图留空。Q-Q 横坐标为标准高斯在 (i−0.5)/n 的分位数，纵坐标为第 i 个标准化次序统计量；n>2000 时固定等距选取至多 2000 个排序位置并保留两端，标准化仍用全部有效收益。数据与图不合并其他路径。它们不是正态性检验或尾指数估计；没有假设观测独立的置信带。高斯参照为 2*sf(x)。超额峰度和有限阈值超额概率均不等于证明数学意义的幂律尾。主峰度采用 SciPy fisher=True、bias=False，同时输出未修正超额峰度及未修正 Pearson 峰度；KDE 使用全样本 Scott 带宽，默认不加高斯曲线。
 
 默认不自动报告尾指数。后续尾指数模块需有阈值敏感性、尾部有效样本量、估计区间、拟合优度及替代分布比较，不能只看 log-log R²。
 
@@ -32,7 +32,7 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 白噪声的 ±1.96/sqrt(n) 只能标为独立零相关近似参照，不称为所有统计量通用的置信区间。bootstrap 需保持路径与 session 边界，并明确重采样单位、区块长度和随机种子。分布区间与零假设显著性检验是两类任务，不能把普通 block bootstrap 当作已施加零相关零假设。
 
-收益、波动的短期相关和绝对收益 ACF 的慢衰减分开解释。季节性或状态切换可能贡献相关性，提供显式季节性对照；不以自动去均值方式隐去待解释现象。
+收益、波动的短期相关和绝对收益 ACF 的慢衰减分开解释。季节性或状态切换可能贡献相关性，当前提供按观测槽分段的对照，尚无交易日历或日内季节性估计/调整模块；不以自动去均值方式隐去待解释现象。
 
 ## 涨跌不对称、多尺度聚合与间歇性（已实现描述诊断）
 
@@ -60,7 +60,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 结果与验证
 
-当前结果 schema_version=0.11。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、first_passage、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 第 8 项标 descriptive_with_optional_short_memory_test，其余为 descriptive_only；这表示模块范围，不代表该路径已经通过任何检验。每路径条件厚尾另记录是否启用、依赖缺失和拟合状态。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、first_passage.csv、long_memory.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.13。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、first_passage、tail_diagnostics、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 第 8 项标 descriptive_with_optional_short_memory_test，其余为 descriptive_only；这表示模块范围，不代表该路径已经通过任何检验。每路径条件厚尾另记录是否启用、依赖缺失和拟合状态。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。tail_diagnostics.csv、scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、first_passage.csv、long_memory.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
@@ -68,7 +68,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 参考范围
 
-[Cont (2001), DOI](https://doi.org/10.1080/713665670) 提供事实覆盖框架；[Ratliff-Crain et al. v2](https://arxiv.org/html/2311.07738v2) 用作多项事实联合评估的参考。以上公式、默认口径与报告设计是项目约定，尚需逐模块验证，不代表上述文章均采用完全相同的计算方法。
+[Cont (2001), DOI](https://doi.org/10.1080/713665670) 提供事实覆盖框架；[Ratliff-Crain et al. v2](https://arxiv.org/html/2311.07738v2) 用作多项事实联合评估的参考。以上公式、默认口径与报告设计是项目约定，已按下述各模块交叉验证，不代表上述文章均采用完全相同的计算方法。
 # 区间成交量与粗细尺度方向：0.4 实现约定
 
 新增模块参考 [Ratliff-Crain 等，Revisiting Cont’s Stylized Facts，v2 第 4.7–4.8 节及附录 A.4](https://arxiv.org/html/2311.07738v2)，并采用以下显式操作定义。它们是描述诊断，不是统一的显著性检验。Cont 清单提供研究问题，不规定本库的分组数或默认尺度。
@@ -115,7 +115,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 来源适配：0.7 实现约定
 
-`prepare` 读取原始字节快照并计算 SHA256，输出新目录内 canonical CSV 和 provenance.json。写出前重算源哈希，不一致则拒绝；报告生成再次校验 canonical 哈希。来源说明由 HTML 自动转义，不执行清单中的文本。统计 JSON schema 为 0.7，新增 data_source；不把本地绝对原始路径或账户凭据写入报告。
+`prepare` 读取原始字节快照并计算 SHA256，输出新目录内 canonical CSV 和 provenance.json。写出前重算源哈希，不一致则拒绝；报告生成再次校验 canonical 哈希。来源说明由 HTML 自动转义，不执行清单中的文本。0.7 时引入 data_source；当前 schema 见上文；不把本地绝对原始路径或账户凭据写入报告。
 
 FRED 仅对 DEXUSEU/DEXJPUS 声明已核对，日期和数据列必须匹配。日频 CSV 可明确日期、价格和量列；日期唯一，空白/点号为缺失，非法非正价格不删除。默认 preserve 在 observations 时钟中保留显式缺失槽；available 必须显式选择，删除这些槽后 lag 代表相邻可用报价，不再表示源日期槽或固定日历时长。未出现的日期没有交易日历补齐。日期转 UTC 零点仅为标签，实际观测时刻由说明注明。
 

@@ -225,3 +225,5 @@ result = analyze_csv(
 ```
 
 这是开发版接口。详细估计量与边界处理见[技术约定](internal/statistical-contract.md)，完整目标见[评估方案](evaluation-plan.md)。
+
+尾部附录另导出 `tail_diagnostics.csv`：每条路径的严格超阈值计数及概率、高斯 Q-Q 排序位置；不可计算时保留状态和原因，详见统计实现约定。

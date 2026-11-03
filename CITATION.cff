@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "Please cite this software and record the version, commit, sampling settings, and data source. This is a private pre-release; no DOI has been assigned."
+type: software
+title: "Financial Stylized Facts"
+authors:
+  - name: "dingwei"
+version: "0.13.0.dev0"
+repository-code: "https://github.com/dingv/financial-stylized-facts"
+url: "https://github.com/dingv/financial-stylized-facts"
+abstract: "Cross-market diagnostics for Cont's eleven financial stylized facts, with readable reports and reproducible numerical exports."
+keywords:
+  - financial time series
+  - stylized facts
+  - agent-based models

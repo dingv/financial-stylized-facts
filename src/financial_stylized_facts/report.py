@@ -20,6 +20,7 @@ from scipy.stats import gaussian_kde
 from . import __version__
 from .data import AnalysisConfig, read_prices, sample_path
 from .statistics import distribution, three_acfs
+from .tails import tail_diagnostics
 from .diagnostics import analyze_diagnostics
 from .dependence import dependence_diagnostics
 from .activity import activity_diagnostics
@@ -176,6 +177,34 @@ def _plots(sampled, metrics, acfs, inference, config, directory, group_id):
 
 def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
+
+
+def _tail_plot(diagnostic, directory, group_id):
+    fig = _figure(height=3.6)
+    axes = fig.subplots(1, 2)
+    if diagnostic["status"] == "computed":
+        rows = diagnostic["ccdf"]
+        axes[0].plot([r["threshold_sigma"] for r in rows],
+                     [r["probability"] if r["count"] else np.nan for r in rows],
+                     color="#2563a6", linewidth=1.5)
+        axes[0].set_yscale("log")
+        axes[0].axhline(1/diagnostic["n"], color="#9aa3ad", linestyle=":", label="One observation / N")
+        axes[0].legend(fontsize=8)
+        qq = diagnostic["qq"]
+        a = [r["normal_quantile"] for r in qq]
+        b = [r["sample_quantile"] for r in qq]
+        axes[1].plot(a, b, ".", color="#2563a6", markersize=3)
+        low, high = min(a[0], b[0]), max(a[-1], b[-1])
+        axes[1].plot([low, high], [low, high], "--", color="#9aa3ad", linewidth=1)
+    else:
+        for ax in axes:
+            ax.text(.5, .5, "Not computable", transform=ax.transAxes, ha="center")
+    axes[0].set(xlabel="Threshold (path standard deviations)", ylabel="P(|z| > threshold)", title="Empirical tail probabilities")
+    axes[1].set(xlabel="Standard normal quantile", ylabel="Standardized return order statistic", title="Normal Q-Q comparison")
+    for ax in axes:
+        _style(ax)
+    path = f"figures/{group_id}-tail-diagnostics.png"
+    return {"tail_diagnostics": path}, {"tail_diagnostics": _save(fig, directory/path)}
 
 
 def _first_passage_plot(result, config, directory, group_id):
@@ -446,6 +475,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         metrics = distribution(sampled["log_return"])
         acfs = three_acfs(sampled, config.max_lag, config.min_pairs)
         diagnostics, rms = analyze_diagnostics(sampled, config)
+        diagnostics["tail_diagnostics"] = tail_diagnostics(sampled["log_return"])
         diagnostics.update(dependence_diagnostics(sampled, config))
         diagnostics.update(activity_diagnostics(sampled, config))
         diagnostics["first_passage"] = first_passage_diagnostics(sampled, config)
@@ -466,7 +496,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.11", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.13", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
@@ -491,9 +521,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     first_passage_rows = []
     long_memory_rows = []
     observation_rows = []
+    tail_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, diagnostics["dependence_uncertainty"], config, output_dir, group_id)
+        new_paths, new_images = _tail_plot(diagnostics["tail_diagnostics"], output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
         new_paths, new_images = _diagnostic_plots(sampled, diagnostics, rms, config, output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)
@@ -510,6 +544,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         paths.update(new_paths)
         embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
+        td = diagnostics["tail_diagnostics"]
+        for kind in ["ccdf", "qq"]:
+            for row in td[kind] or [{}]:
+                tail_rows.append({"asset_id": asset, "path_id": path, "kind": kind,
+                                  "n": td["n"], "status": td["status"], "reason": td["reason"], **row})
         item["findings"] = summarize(item, config, sampled)
         for finding in item["findings"]["by_fact"].values():
             observation_rows.append({"asset_id": asset, "path_id": path, **finding,
@@ -599,6 +638,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     serialized = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
+    pd.DataFrame(tail_rows).to_csv(output_dir / "tail_diagnostics.csv", index=False)
     pd.DataFrame(observation_rows, columns=["asset_id", "path_id", "fact_id", "status", "text", "limitation", "references"]).to_csv(output_dir/"observations.csv", index=False)
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
     pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)

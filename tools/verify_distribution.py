@@ -34,7 +34,7 @@ def verify(source,output):
                            check=True,timeout=120)
     tree=output/"source-copy"
     tree.mkdir()
-    for name in ["pyproject.toml","README.md","MANIFEST.in","environment.yml","src","docs","examples","tests","tools","environments",".github"]:
+    for name in ["pyproject.toml","README.md","MANIFEST.in","environment.yml","CITATION.cff","CHANGELOG.md","CONTRIBUTING.md","src","docs","examples","tests","tools","environments",".github"]:
         src=source/name
         if not src.exists():
             continue

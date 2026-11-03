@@ -45,3 +45,7 @@
 - 2026-11-03：0.12 将两套合成生成器移入包内，`fsf demo` 在新目录写输入、种子/配置及独立 HTML。原 examples 命令仍兼容；公共入口为 `from financial_stylized_facts import AnalysisConfig, analyze_csv`。新目录、防覆盖、种子与时间反转校验通过。README 不再暗示当前支持预计算收益输入；安装说明不依赖维护者的服务器路径。
 - `/tmp/fsf-package-trial-20261103/`：从源码副本生成 sdist，再从解包内容构建 wheel，安装到 tmp 的独立包目录。Conda 依赖共享、源码包文件隔离；用 `-I` 启动器确认包与 metadata 都来自 target，另检查真实 fsf 入口。209 tests 从 sdist 针对 wheel 运行通过，三类演示完成（其中 arch 缺失通过导入拦截模拟，未卸载现有依赖）。总 48.78 秒，临时目录约 32.63 MB。
 - wheel `financial_stylized_facts-0.12.0.dev0-py3-none-any.whl`，SHA256 `73be1f545c99725643daf45fdd3a85d8f23bf93b0b40fd5f9a58e770e99a4c7b`。完整证据为 verification.json / verification.log。未新增依赖，未建 venv，未改原始数据。已准备单个 Linux/Python3.12 GitHub Conda 测试工作流；正式公开发布与上传不在自动化内，云端实际结果待读取。
+
+- 2026-11-03：64e5816 的新建 Conda CI 运行 41599262401 实际成功（2m1s），通过已安装包测试及全部演示。0.13 补齐原计划的折叠 CCDF/Q-Q，逐路径直接计数，零尾概率不画伪零，排序点有界并保留两端；正文密度不加正态曲线。首轮针对报告测试有一处旧图片数断言未同步，修正后完整包验收 215 tests 通过，没有数值算法失败。
+- 0.13 包验收 `/tmp/fsf-release-package-20261103/` 约54.28秒；真实验证 `/tmp/fsf-final-real-20261103/` 八份21.93秒、27,379,748字节，源哈希未变，独立数值审核通过。新增文献、许可元数据、引用、贡献和发布说明；许可证仍是待确认候选，没有自动授予/公开。
+- 首版方法逐项审阅、浏览器路径切换/附录验证及发布扫描记录在 first-release-acceptance.md；最后阶段提交并核对新 CI，不再另加新的统计估计器。

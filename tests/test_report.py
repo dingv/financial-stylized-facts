@@ -32,7 +32,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     text = (out / "index.html").read_text()
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
-    assert text.count("data:image/png;base64,") == 20
+    assert text.count("data:image/png;base64,") == 22
     assert "path-select" in text and "正式统计检验仍待补齐" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
@@ -44,7 +44,11 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert "这条路径先看三件事" in text
     assert all(len(g["findings"]["by_fact"]) == 11 for g in result["groups"])
     assert result["groups"][0]["findings"]["by_fact"]["2"]["status"] == "zero_variance"
-    assert len(list((out / "figures").glob("*.png"))) == 20
+    assert len(list((out / "figures").glob("*.png"))) == 22
+    tail = pd.read_csv(out/"tail_diagnostics.csv")
+    assert set(tail.path_id) == {"constant", "gauss"}
+    assert tail[tail.path_id == "constant"].status.eq("zero_variance").all()
+    assert '<details><summary>进一步看尾部概率与 Q-Q 对照</summary>' in text
     assert len(pd.read_csv(out / "scales.csv")) == 8
     assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
     assert all(x["status"] == "descriptive_only" for x in result["coverage"][:6])
@@ -101,7 +105,7 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert len(result["groups"][0]["volatility_persistence"]["blocks"]) == 3
     assert result["groups"][0]["volume_volatility"]["n"] == 60
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
-    assert (out/"index.html").read_text().count("data:image/png;base64,") == 11
+    assert (out/"index.html").read_text().count("data:image/png;base64,") == 12
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
 
 
@@ -130,7 +134,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
-    assert text.count("data:image/png;base64,") == 11
+    assert text.count("data:image/png;base64,") == 12
     fp = pd.read_csv(out/"first_passage.csv")
     assert len(fp) == 120 and set(fp.direction) == {"up","down"}
     assert fp.elapsed_seconds.iloc[-1] == 1200

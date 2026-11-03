@@ -37,6 +37,11 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <img src="{{ g.images.timeline }}" alt="{{ g.asset_id }} {{ g.path_id }} 的价格和收益时间序列"><p class="muted">保留缺失与交易时段断点；没有用未来价格补齐过去。</p></section>
 <section class="card"><h2>2. 收益主要集中在哪里？</h2>{{ observation(g, '2') }}<p>这条曲线描述本路径收益分布，没有混入其他路径，也没有平均不同路径的曲线。</p>
 <img src="{{ g.images.density }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益概率密度图">
+<details><summary>进一步看尾部概率与 Q-Q 对照</summary>
+<p>左图回答“离均值超过这么多个标准差的收益，占多少？”；右图按从小到大的顺序比较本路径收益与高斯分布的分位数。左端向下、右端向上偏离虚线，是相应样本尾部偏大的线索；偏离也可能来自偏斜或多种波动状态。</p>
+<img src="{{ g.images.tail_diagnostics }}" alt="{{ g.asset_id }} {{ g.path_id }} 的经验尾概率和高斯分位数对照">
+{% if g.tail_diagnostics.status != 'computed' %}<p>{{ g.tail_diagnostics.reason }}</p>{% endif %}
+<p class="muted">均值与标准差都由本路径全部有效收益估计。尾概率采用严格超过，零计数在对数纵轴留空，不代表总体概率为零。水平点线表示一条观测的比例，不是置信界限。Q-Q 虚线是等分位参考线，没有在正文密度图叠加正态曲线；最多显示 2000 个固定排序位置并保留两端。这里没有拟合尾指数或提供正态性检验，极端端点也只有少量观测支撑。数值见 tail_diagnostics.csv。</p></details>
 <p class="muted">{{ g.findings.by_fact['2'].limitation }}</p>
 {% if g.density.status != 'computed' %}<p class="muted">未生成平滑密度：{{ g.density.reason }}</p>{% else %}<p class="muted">使用全体有效收益，Scott 带宽 KDE；平滑会影响视觉形状，峰度直接从样本计算。</p>{% endif %}
 {% if g.uncertainty.status in ['computed', 'partially_computed'] %}<p>下面的近似区间用于观察估计有多稳定。不同块长的结果都保留；区间变化很大时，结论可能依赖对时间相关性的处理。</p>
