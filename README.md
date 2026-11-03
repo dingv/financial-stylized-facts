@@ -6,7 +6,7 @@
 
 - **逐资产、逐路径分析**：分别展示收益分布、波动聚集、自相关和多尺度变化。
 - **报告与数值一起输出**：图表配有根据计算结果生成的说明；HTML 离线可读，JSON、CSV 和 PNG 可继续用于研究。
-- **明确的统计定义**：记录采样频率、缺失策略、样本量与适用的不确定性估计。
+- **不确定性估计**：提供区块重采样与 HAC 近似区间。
 - **本地运行**：分析和报告生成无需大模型、API 密钥或在线服务。
 
 ## 真实数据示例
@@ -17,8 +17,6 @@
 | --- | --- | --- | --- |
 | AAPL、MSFT 日频股票 | 2000–2013 | Quandl WIKI，经 Bokeh 数据集分发 | [AAPL](examples/reports/AAPL.html) · [MSFT](examples/reports/MSFT.html) |
 | EUR/USD、USD/JPY 日频汇率 | 2010–2025 | Federal Reserve H.10 | [EUR/USD](examples/reports/EURUSD.html) · [USD/JPY](examples/reports/USDJPY.html) |
-
-HTML 请下载后用浏览器打开，GitHub 文件页不直接渲染 HTML。[示例说明](examples/README.md)包含运行命令，[数据说明](data/README.md)记录来源、字段、分发条件和处理方式。
 
 **AAPL：价格、收益与波动聚集**
 
@@ -38,7 +36,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为四组真实数据分别生成报告；输出目录须尚不存在。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为四组真实数据分别生成报告。
 
 分析自己的分钟价格：
 
@@ -48,7 +46,7 @@ fsf analyze prices.csv --output /tmp/my-report \
   --max-staleness 30s --price-type transaction
 ```
 
-输入至少包含 `timestamp,price`，可选 `asset_id,path_id,session_id,volume`。`max-staleness` 是允许沿用旧价的时长，应按数据频率设置。日收盘价使用观测序号模式，详见[使用指南](docs/usage.md)。
+CSV 包含 `timestamp,price`，可选 `asset_id,path_id,session_id,volume`。完整参数见[使用指南](docs/usage.md)。
 
 Python 接口：
 
@@ -78,21 +76,17 @@ result = analyze_csv(
 | 成交量与波动相关 | Pearson、Spearman 与分组图 |
 | 时间尺度不对称 | 粗、细尺度波动的两个时间方向对照 |
 
-这些是研究诊断，不是所有资产都必须通过的评分表。正超额峰度不等于已证明幂律尾部，长期相关也不直接等于长记忆。没有成交量的数据会明确跳过量价分析。
-
 ## 文档
 
 - [使用指南](docs/usage.md)：CSV 输入、命令行与报告阅读。
 - [数据指南](docs/data-guide.md)：股票、FRED、EBS 数据接入。
-- [统计方法](docs/methods.md)：估计量、时间单位与解释边界。
+- [统计方法](docs/methods.md)：指标与计算方法。
 - [参考文献](docs/references.md)：方法来源与数值计算参考。
 
 ## 参考文献
 
-1. **Cont, R. (2001).** [Empirical properties of asset returns: stylized facts and statistical issues](https://doi.org/10.1080/713665670). *Quantitative Finance*, 1(2), 223–236. 本库 11 项典型事实的组织框架。
-2. **Ratliff-Crain, E., et al. (2025).** [Revisiting Cont’s stylized facts for modern stock markets](https://doi.org/10.1080/14697688.2025.2530637). *Quantitative Finance*, 25(9), 1343–1373. 多事实联合评估、杠杆效应与粗细尺度分析的参考；[开放预印本](https://arxiv.org/abs/2311.07738v2)。
-3. **Newey, W. K., & West, K. D. (1987).** [A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix](https://doi.org/10.2307/1913610). *Econometrica*. 时间相关指标的 HAC 协方差估计依据。
-4. **Lo, A. W. (1991).** [Long-Term Memory in Stock Market Prices](https://doi.org/10.2307/2938368). *Econometrica*. 调整短期依赖的修正 R/S 检验依据。
-5. **Jensen, M. H., Johansen, A., & Simonsen, I. (2003).** [Inverse statistics in economics: The gain–loss asymmetry](https://doi.org/10.1016/S0378-4371%2802%2901884-8). *Physica A*. 对称收益阈值与首达时间分析的参考；[开放预印本](https://arxiv.org/abs/cond-mat/0211039)。
-
-具体估计量和默认设置见[统计方法](docs/methods.md)，数据来源与署名见[数据说明](data/README.md)。
+1. Cont, R. (2001). [Empirical properties of asset returns: stylized facts and statistical issues](https://doi.org/10.1080/713665670). *Quantitative Finance*, 1(2), 223–236.
+2. Ratliff-Crain, E., et al. (2025). [Revisiting Cont’s stylized facts for modern stock markets](https://doi.org/10.1080/14697688.2025.2530637). *Quantitative Finance*, 25(9), 1343–1373.
+3. Newey, W. K., & West, K. D. (1987). [A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix](https://doi.org/10.2307/1913610). *Econometrica*.
+4. Lo, A. W. (1991). [Long-Term Memory in Stock Market Prices](https://doi.org/10.2307/2938368). *Econometrica*.
+5. Jensen, M. H., Johansen, A., & Simonsen, I. (2003). [Inverse statistics in economics: The gain–loss asymmetry](https://doi.org/10.1016/S0378-4371%2802%2901884-8). *Physica A*.
