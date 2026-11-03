@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "financial-stylized-facts"
-version = "0.4.0.dev0"
+version = "0.5.0.dev0"
 description = "Cross-market financial stylized facts analysis and reporting"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,7 +14,8 @@ dependencies = ["numpy>=2.2,<3", "scipy>=1.15,<2", "pandas>=2.2,<3", "matplotlib
 fsf = "financial_stylized_facts.cli:main"
 
 [project.optional-dependencies]
-test = ["pytest>=8.4,<9", "statsmodels>=0.15,<0.16"]
+conditional = ["arch>=8.0,<9"]
+test = ["pytest>=8.4,<9", "statsmodels>=0.15,<0.16", "arch>=8.0,<9"]
 
 [tool.setuptools.package-data]
 financial_stylized_facts = ["templates/*.html"]

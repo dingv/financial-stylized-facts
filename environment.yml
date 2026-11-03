@@ -9,6 +9,7 @@ dependencies:
   - pandas=2.2
   - matplotlib-base=3.10
   - statsmodels=0.15
+  - arch-py=8.0.0
   - jinja2=3.1
   - pytest=8.4
   - pip

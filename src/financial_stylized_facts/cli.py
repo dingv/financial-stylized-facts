@@ -33,6 +33,12 @@ def main(argv=None):
     analyze.add_argument("--volume-kind", choices=["none", "interval"], default="none", help="interval 表示已按基础采样区间汇总的成交量")
     analyze.add_argument("--volume-unit", help="成交量单位，例如 shares、contracts、USD；不能用成交笔数代替")
     analyze.add_argument("--coarse-factor", type=int, default=30, help="粗波动区间包含的基础收益数，至少为 2")
+    analyze.add_argument("--conditional-model", choices=["auto", "off"], default="auto", help="有 arch 依赖且连续段足够长时拟合 GARCH")
+    analyze.add_argument("--garch-min-points", type=int, default=500)
+    analyze.add_argument("--garch-max-points", type=int, default=100000, help="每条路径允许拟合的总收益数上限，不截断长段")
+    analyze.add_argument("--garch-max-segments", type=int, default=8, help="每条路径最多尝试拟合的连续段数")
+    analyze.add_argument("--garch-max-iter", type=int, default=500)
+    analyze.add_argument("--garch-burn", type=int, default=50, help="拟合后比较分布时舍弃段首的观测数")
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}

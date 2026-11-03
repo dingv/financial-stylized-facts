@@ -27,11 +27,25 @@ class AnalysisConfig:
     volume_kind: str = "none"
     volume_unit: str | None = None
     coarse_factor: int = 30
+    conditional_model: str = "auto"
+    garch_min_points: int = 500
+    garch_max_points: int = 100000
+    garch_max_segments: int = 8
+    garch_max_iter: int = 500
+    garch_burn: int = 50
 
     def validate(self):
-        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor"]:
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
+        if self.conditional_model not in {"auto", "off"}:
+            raise ValueError("conditional_model 必须为 auto 或 off")
+        if self.garch_min_points < 100 or self.garch_max_points < self.garch_min_points:
+            raise ValueError("GARCH 最少样本不能低于 100，最多样本必须不小于最少样本")
+        if self.garch_max_segments < 1 or not 1 <= self.garch_max_iter <= 10000:
+            raise ValueError("GARCH 段数必须为正，最大优化迭代为 1–10000")
+        if not 0 <= self.garch_burn <= self.garch_min_points-4:
+            raise ValueError("garch_burn 必须非负且至少保留 4 个最小样本段内的观测")
         if not 2 <= self.coarse_factor <= 10000:
             raise ValueError("coarse_factor 必须在 2–10000 之间")
         if self.volume_kind not in {"none", "interval"}:

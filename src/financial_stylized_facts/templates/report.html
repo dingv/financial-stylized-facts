@@ -18,7 +18,7 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版提供十项事实的描述性诊断；缺少成交量时跳过对应分析。条件厚尾与正式统计检验仍待补齐。</p></header>
+<p class="muted">本版提供十一项事实的描述性诊断；缺少成交量、模型依赖或有效样本时，会明确说明。正式统计检验仍待补齐。</p></header>
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
@@ -79,6 +79,21 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <p class="muted">区间彼此不重叠，横轴表示两个区间之间的时间距离，不是基础收益的间隔。这里比较的是相关性，不是因果或预测能力检验；它也不同于价格变化的幂律缩放图。</p>
 <details><summary>查看粗细尺度定义与数据覆盖</summary><p>大尺度 C = |区间内收益之和|；小尺度 F = 区间内绝对收益的平均值。A(k) = corr(Fₜ, Cₜ₊ₖ)，差值 D(k) = A(k) − A(−k)。每个滞后按有效配对单独去均值，使用 Pearson 相关。每个 session 从首个价格开始分块；块内缺失则整块无效，不跨 session 配对。</p>
 <p>完整长度区间共 {{ g.timescale_asymmetry.quality.total_blocks }} 个，其中因缺失无效 {{ g.timescale_asymmetry.quality.invalid_blocks }} 个；尾部不够一块而舍弃 {{ g.timescale_asymmetry.quality.discarded_return_slots }} 个收益槽。正反方向的配对数及差值见 timescale.csv。不同尺度组合可能给出不同结果，不挑选差异最大的尺度作为结论。</p></details></section>
+<section class="card"><h2>11. 调整时变波动后，厚尾还在吗？</h2>
+<p>先用 GARCH(1,1) 描述波动大小如何随时间变化，再将收益减去拟合均值、除以当时的条件波动。如果残差仍有较高峰度，说明这一个波动模型没有完全解释分布的厚尾。</p>
+{% if g.conditional_tails.reason %}<p>{{ g.conditional_tails.reason }}。</p>{% endif %}
+{% if g.conditional_tails.n_evaluated %}<p>本路径共有 {{ g.conditional_tails.total_valid_returns }} 个有效收益，其中 <strong>{{ g.conditional_tails.n_evaluated }}</strong> 个进入拟合后的分布比较。各连续段独立展示，没有把不同段的残差拼成一条密度曲线。</p>{% endif %}
+{% for s in g.conditional_tails.segments %}{% if s.status == 'computed' %}
+<h3>连续段 {{ s.segment }}</h3><p class="muted">{{ s.start }} — {{ s.end }} · 拟合 {{ s.n_fit }} 条，比较 {{ s.n_evaluated }} 条</p>
+<img src="{{ g.images[s.figure_key] }}" alt="{{ g.asset_id }} {{ g.path_id }} 第 {{ s.segment }} 段过滤前后分布与平方收益相关">
+<p>相同时间范围内，原始收益超额峰度为 <strong>{{ s.raw_distribution.excess_kurtosis|number }}</strong>，标准化残差为 <strong>{{ s.residual_distribution.excess_kurtosis|number }}</strong>。右图比较调整前后平方收益的相关；残差仍明显相关时，这个波动模型可能还不充分。</p>
+{% if 'near_unit_persistence' in s.flags %}<div class="notice">拟合的波动持续性接近 1，初始条件影响可能持续较久，残差结论需要谨慎解释。</div>{% endif %}
+{% if 'coefficient_near_zero_boundary' in s.flags %}<p class="muted">至少一个波动系数接近零边界；这也可能表示数据没有明显的该类动态，不自动当作拟合失败。</p>{% endif %}
+{% endif %}{% endfor %}
+<details><summary>查看各段状态、覆盖与拟合约定</summary><div class="table-wrap"><table><tr><th>段 / session</th><th>收益数</th><th>状态或原因</th></tr>{% for s in g.conditional_tails.segments %}<tr><td>{{ s.segment }} / {{ s.session_id }}</td><td>{{ s.n }}</td><td>{{ '已计算' if s.status == 'computed' else s.reason }}</td></tr>{% endfor %}</table></div>
+<p>缺失与 session 边界断开拟合；默认每段至少 {{ config.garch_min_points }} 条收益，每条路径最多尝试 {{ config.garch_max_segments }} 段、合计 {{ config.garch_max_points }} 条，按时间顺序处理，超限段不截断。拟合后舍弃每段前 {{ config.garch_burn }} 条，再对相同范围作前后比较。</p>
+<p>常数均值、Gaussian 准似然 GARCH(1,1)，arch 版本 {{ g.conditional_tails.arch_version or '不可用' }}。先对输入做显式中心化与缩放以改善优化，导出参数恢复到原收益单位。密度图只将原始收益再标准化以便比较；残差使用模型输出。优化未收敛时不生成残差结论。拟合参数、边界提示与配对数见 results.json；可用段的逐点残差在 conditional/。</p></details>
+<p class="muted">这是全段样本内诊断，不是样本外预测，也不证明已消除所有波动结构。原始收益与残差的峰度都只是描述统计，没有因为拟合成功就自动判定“条件厚尾成立”。</p></section>
 <details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
 <tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
 <tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>

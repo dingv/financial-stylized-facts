@@ -23,6 +23,7 @@ from .statistics import distribution, three_acfs
 from .diagnostics import analyze_diagnostics
 from .dependence import dependence_diagnostics
 from .activity import activity_diagnostics
+from .conditional import conditional_diagnostics
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -124,6 +125,57 @@ def _plots(sampled, metrics, acfs, config, directory, group_id):
 
 def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
+
+
+def _conditional_plots(result, arrays, config, directory, group_id):
+    paths, embedded = {}, {}
+    rows = {r["segment"]: r for r in result["segments"]}
+    for data in arrays:
+        number = data["segment"]
+        row = rows[number]
+        raw = data["raw"]
+        standardized = (raw-raw.mean())/raw.std() if raw.std() > 0 else raw*0
+        fig = _figure(height=3.6)
+        axes = fig.subplots(1, 2)
+        for values, label, color in [(standardized, "Raw (standardized)", "#9aa3ad"),
+                                      (data["standardized_residual"], "GARCH residual", "#2563a6")]:
+            if len(values) >= 2 and np.std(values) > 0:
+                try:
+                    kde = gaussian_kde(values, bw_method="scott")
+                    grid = np.linspace(values.min()-values.std(), values.max()+values.std(), 384)
+                    axes[0].plot(grid, kde(grid), color=color, label=label, linewidth=1.6)
+                except (ValueError, np.linalg.LinAlgError):
+                    row.setdefault("plot_warnings", []).append(f"KDE unavailable: {label}")
+        axes[0].set(xlabel="Standardized return / residual", ylabel="Density", title="Before and after filtering")
+        if axes[0].lines:
+            axes[0].legend(frameon=False, fontsize=8)
+        if config.sampling == "grid":
+            seconds = pd.Timedelta(config.frequency).total_seconds()
+            divisor, unit = (3600, "hours") if seconds >= 3600 else (60, "min") if seconds >= 60 else (1, "seconds")
+            factor, xlabel = seconds/divisor, f"Lag ({unit})"
+        else:
+            factor, xlabel = 1, "Lag (observations)"
+        for key, label, color in [("raw_squared_acf", "Raw squared", "#9aa3ad"),
+                                  ("residual_squared_acf", "Residual squared", "#2563a6")]:
+            estimate = row[key]
+            values = [np.nan if v is None else v for v in estimate["values"][1:]]
+            axes[1].plot(np.asarray(estimate["lags"])[1:]*factor, values, color=color, label=label, linewidth=1.2)
+        axes[1].axhline(0, color="#9aa3ad", linewidth=.8)
+        axes[1].legend(frameon=False, fontsize=8)
+        axes[1].set(xlabel=xlabel, ylabel="Autocorrelation", title="Remaining volatility dependence")
+        for ax in axes:
+            _style(ax)
+        key = f"conditional_{number}"
+        paths[key] = f"figures/{group_id}-{key}.png"
+        embedded[key] = _save(fig, directory/paths[key])
+        row["figure_key"] = key
+        row["figure"] = paths[key]
+        (directory/"conditional").mkdir(exist_ok=True)
+        row["residual_file"] = f"conditional/{group_id}-s{number:04d}.csv"
+        pd.DataFrame({"timestamp": data["timestamps"], "log_return": raw,
+                      "fitted_mean": data["fitted_mean"], "conditional_volatility": data["conditional_volatility"],
+                      "standardized_residual": data["standardized_residual"]}).to_csv(directory/row["residual_file"], index=False)
+    return paths, embedded
 
 
 def _activity_plots(diagnostics, config, directory, group_id):
@@ -306,16 +358,18 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         diagnostics, rms = analyze_diagnostics(sampled, config)
         diagnostics.update(dependence_diagnostics(sampled, config))
         diagnostics.update(activity_diagnostics(sampled, config))
-        groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms))
+        conditional, residual_arrays = conditional_diagnostics(sampled, config)
+        diagnostics["conditional_tails"] = conditional
+        groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.4", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.5", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i != 7 else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -328,7 +382,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     views, summary_rows, acf_rows, scale_rows = [], [], [], []
     leverage_rows, persistence_rows = [], []
     volume_rows, timescale_rows = [], []
-    for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms) in enumerate(groups):
+    conditional_rows = []
+    for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
         new_paths, new_images = _diagnostic_plots(sampled, diagnostics, rms, config, output_dir, group_id)
@@ -338,6 +393,9 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         paths.update(new_paths)
         embedded.update(new_images)
         new_paths, new_images = _activity_plots(diagnostics, config, output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
+        new_paths, new_images = _conditional_plots(diagnostics["conditional_tails"], residual_arrays, config, output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
@@ -365,6 +423,14 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
             timescale_rows.append({"asset_id": asset, "path_id": path, "coarse_factor": asym["factor"],
                                    "separation_seconds": row["lag"]*asym["factor"]*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
                                    "observation_unit": config.observation_unit, **row})
+        conditional = diagnostics["conditional_tails"]
+        for row in conditional["segments"]:
+            conditional_rows.append({"asset_id": asset, "path_id": path, "segment": row["segment"], "session_id": row["session_id"],
+                                     "start": row["start"], "end": row["end"], "n": row["n"], "status": row["status"], "reason": row.get("reason"),
+                                     "n_evaluated": row.get("n_evaluated"), "optimizer_status": row.get("optimizer_status"),
+                                     "raw_excess_kurtosis": row.get("raw_distribution", {}).get("excess_kurtosis"),
+                                     "residual_excess_kurtosis": row.get("residual_distribution", {}).get("excess_kurtosis"),
+                                     "flags": ";".join(row.get("flags", [])), **row.get("parameters", {})})
         for row in diagnostics["aggregation"]["scales"]:
             scale_rows.append({"asset_id": asset, "path_id": path, **row,
                                "interval_seconds": pd.Timedelta(config.frequency).total_seconds()*row["factor"] if config.sampling == "grid" else None,
@@ -392,6 +458,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
     pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)
     pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
+    pd.DataFrame(conditional_rows, columns=["asset_id", "path_id", "segment", "session_id", "start", "end", "n", "status", "reason", "n_evaluated", "optimizer_status", "raw_excess_kurtosis", "residual_excess_kurtosis", "mu", "omega", "alpha", "beta", "persistence", "flags"]).to_csv(output_dir/"conditional.csv", index=False)
     pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
     pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)

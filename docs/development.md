@@ -21,7 +21,7 @@ cd /home/dingwei/financial-stylized-facts
 
 NumPy、SciPy、Pandas 用于数值和数据处理，Matplotlib 用于画图，statsmodels 用于统计交叉验证，Jinja2 用于报告模板，pytest 用于测试。当前 Python 包已提供基础分布、ACF 与 HTML 报告；完整 11 项评估仍在开发。
 
-`environment.yml` 固定主要版本系列；`environments/linux-64.explicit.txt` 保存本次安装的确切包构建和下载校验信息。前者便于维护，后者用于 Linux x86-64 上重建同一组包。此环境不包含 GPU 计算依赖，也未安装后续可选的 GARCH 包 arch。
+`environment.yml` 固定主要版本系列；`environments/linux-64.explicit.txt` 保存本次安装的确切包构建和下载校验信息。前者便于维护，后者用于 Linux x86-64 上重建同一组包。此环境不包含 GPU 计算依赖，已安装条件厚尾所需 arch 8.0.0。
 
 本次环境已实际验证：收益与峰度计算、ACF、时间采样、PNG 输出和 HTML 模板均可运行；`pip check` 通过，原有 base 与 sasaki-fx 的 Conda 包记录未变化。
 
@@ -35,6 +35,7 @@ NumPy、SciPy、Pandas 用于数值和数据处理，Matplotlib 用于画图，s
 | statsmodels | 0.15.0 |
 | jinja2 | 3.1.6 |
 | pytest | 8.4.2 |
+| arch | 8.0.0 |
 
 ## 在另一台机器重建
 

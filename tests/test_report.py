@@ -33,10 +33,10 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
     assert text.count("data:image/png;base64,") == 18
-    assert "path-select" in text and "尚未实现" in text
+    assert "path-select" in text and "正式统计检验仍待补齐" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
-    assert json.loads(numerical)["coverage"][6]["status"] == "not_implemented"
+    assert json.loads(numerical)["coverage"][6]["status"] == "descriptive_only"
     assert len(pd.read_csv(out / "summary.csv")) == 2
     assert len(list((out / "figures").glob("*.png"))) == 18
     assert len(pd.read_csv(out / "scales.csv")) == 8
@@ -93,3 +93,26 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
     assert (out/"index.html").read_text().count("data:image/png;base64,") == 10
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
+
+
+def test_conditional_report_exports_aligned_residuals(tmp_path):
+    p = tmp_path/"garch-input.csv"
+    rng = np.random.default_rng(33)
+    returns = rng.normal(0, .001, 700)
+    pd.DataFrame({"timestamp": pd.date_range("2024-01-01", periods=701, freq="min", tz="UTC"),
+                  "price": 100*np.exp(np.r_[0, returns.cumsum()])}).to_csv(p, index=False)
+    out = tmp_path/"garch-report"
+    result = analyze_csv(p, out, AnalysisConfig(frequency="1min"))
+    conditional = result["groups"][0]["conditional_tails"]
+    assert conditional["status"] == "computed"
+    segment = conditional["segments"][0]
+    residuals = pd.read_csv(out/segment["residual_file"])
+    assert len(residuals) == 650
+    np.testing.assert_allclose(residuals.standardized_residual,
+                               (residuals.log_return-residuals.fitted_mean)/residuals.conditional_volatility, atol=1e-10)
+    assert pd.Timestamp(residuals.timestamp.iloc[0]) == pd.Timestamp("2024-01-01T00:51Z")
+    assert (out/segment["figure"]).exists()
+    assert pd.read_csv(out/"conditional.csv").n_evaluated.iloc[0] == 650
+    text = (out/"index.html").read_text()
+    assert "连续段 1" in text
+    assert text.count("data:image/png;base64,") == 10

@@ -1,10 +1,10 @@
 # 统计实现约定
 
-本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向、条件厚尾与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
-当前只接受价格 CSV：必需字段 timestamp、price，可选 asset_id、path_id、session_id。价格要求有限且大于零，无效行直接报错；不静默删除。缺省标识为 series、observed。计划增加明确的已计算收益接口与 volume 字段，不根据数值猜测输入类别；未来 volume 必须注明含义、单位与区间量/累计量。
+当前只接受价格 CSV：必需字段 timestamp、price，可选 asset_id、path_id、session_id。价格要求有限且大于零，无效行直接报错；不静默删除。缺省标识为 series、observed。计划增加明确的已计算收益接口；可选 volume 字段按末尾的区间量约定，不根据数值猜测输入类别。
 
 时间必须附时区或由配置指定；同时间多成交需要稳定顺序字段，否则按声明的输入顺序处理并披露。默认不将不同 session、资产、路径拼接成一条序列。
 
@@ -58,13 +58,9 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 该对照可以识别状态混合对全程相关的贡献，但分段后配对减少与均值重估也影响曲线，因此不单凭“分段后相关下降”确定机制。保留负点、不选择正点作 log-log 拟合；long_memory_test 状态固定为 not_implemented。较长范围相关仍可能来自短记忆、结构变化或季节性，不能代替幂律或长记忆检验。新增测试含无杠杆的 iid、已知前向波动响应、倒数报价反号，以及“全程正相关但分段接近零”的方差状态混合。
 
-## 其他模块的候选算法（均尚未实现）
-
-- 条件厚尾：候选为常数均值 Gaussian QMLE GARCH(1,1)，e_t=(r_t-mu)/sigma_t。按 [arch 官方定义](https://arch.readthedocs.io/en/latest/univariate/introduction.html) 拟合；检查优化收敛、参数边界、尺度处理与残余波动相关，再比较残差分布。全样本拟合属于描述性拟合，不声称样本外预测；如做样本外评估必须分训练/验证。该可选模块依赖 arch，尚未安装或实现。
-
 ## 结果与验证
 
-当前结果 schema_version=0.4。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的第 1–6、8–11 项标 descriptive_only，第 7 项标 not_implemented；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.5。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
@@ -90,3 +86,15 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 每个 k 按同 session 的有效配对独立去均值计算 Pearson；不跨 session，不用同期 k=0 推断不对称。差值任一方向不可算则为 null。横轴一步为 m 个基础间隔；observations 模式只能标为 m 个观测，不能假称固定分钟。默认 m=30，最大 lag 沿用 `max_lag`，但以完整块数截断。该默认是可配置选择，不是从数据挑选最大不对称。
 
 配对、差值及两向样本数全部导出；没有置信区间、因果推断或样本外预测检验。反转整块对齐的时间序列应使 D 反号；将 FX 收益整体反号应不改变 C、F、D。测试包含这两个性质、手算分块、含缺口的直接 Pearson 对照，以及已知粗在前的构造过程。
+
+## 条件厚尾：0.5 实现约定
+
+使用 [arch 8.0 的模型定义](https://bashtage.github.io/arch/univariate/introduction.html) 和 [fit API](https://bashtage.github.io/arch/univariate/generated/generated/arch.univariate.base.ARCHModel.fit.html)。常数均值 Gaussian QMLE GARCH(1,1)：`r_t=mu+sigma_t*z_t`，`sigma_t²=omega+alpha*(r_(t-1)-mu)²+beta*sigma_(t-1)²`。创新准似然选 normal，不通过选择 t 分布预先强加厚尾形状。模型参数用整段估计，结果是样本内诊断。
+
+每个 session 按 NaN 切成连续有效收益段，时间顺序逐段独立拟合。默认最低 500 条收益，每路径最多尝试 8 段、100000 条，优化最多 500 次迭代。短段、超限段不拼接、不截断；所有段的状态都输出。图和残差只来自成功段，成功覆盖率明确报告。模型开关关闭或依赖缺失也分别记录。
+
+输入先按该段均值 c 和 ddof=0 标准差 s 转成 y=(r-c)/s；arch 的 rescale=False，优化 ftol=1e-8。拟合后 mu=c+s*mu_y，omega=s²*omega_y，alpha/beta 不变，条件波动恢复原单位。记录优化状态、消息、迭代次数、软件警告。非零 convergence_flag、非有限参数/残差、非正条件波动或不满足方差参数约束时不产生残差结论。系数接近零、alpha+beta>=0.995 只作启发式提示，阈值不是统计检验。
+
+拟合后舍弃前 garch_burn=50 个观测，并在同一截取范围对原始收益和 z=(r-mu)/sigma 分别计算峰度与尾部计数。分布图的原始收益再次按截取样本中心化与标准化，残差使用原模型 z；无正态密度参照，无跨段合并。原始平方 ACF 使用 ((r-mean(r))/std(r))²，残差平方 ACF 使用 z²；单段 fixed-denominator 定义与已有 ACF 一致。两者的残余相关用于检查过滤效果，不输出未经校准的拟合后 IID p 值。
+
+逐段参数、状态、前后峰度在 conditional.csv；可用段的 timestamp、r、mu、sigma、z 在 conditional/，与显示区间相同。测试核对残差恒等式、方差递推、单位变换、Gaussian/t 创新模拟的过滤行为，以及缺口、短段、资源限制、优化失败和依赖缺失。100% 拟合成功不等于模型充分；持续性接近 1 时 50 个初始化缓冲观测可能不足。
