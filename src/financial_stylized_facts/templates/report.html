@@ -18,7 +18,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS</div><h1>{{ result.title }}</h1>
 <p class="muted">逐项结论 · 关键统计量 · 图形证据</p>
-{% if result.data_source %}<p class="caption">数据：{{ result.data_source.source_name }} · {{ config.price_type }}</p>{% endif %}</header>
+{% if result.data_source %}<p class="caption">数据：{{ result.data_source.source_name }} · {{ config.price_type }}</p>{% endif %}{% if result.data_source and result.data_source.report_note %}<p class="caption">{{ result.data_source.report_note }}</p>{% endif %}</header>
 <div class="toolbar"><label for="path-select">资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">基础收益：{{ clock_label }} · 非重叠对数收益</span></div>

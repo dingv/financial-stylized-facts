@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+ETH_FUT_202512,observed,1464,1464,1,0,0,0,1463,2025-10-01 01:00:00+00:00,2025-12-01 00:00:00+00:00,-0.00023220956392654802,0.0077986070806139104,0.000683526999316473,3.9623764470538614,computed,,-0.2521495582942665,0.016404647983595352

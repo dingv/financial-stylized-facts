@@ -1,0 +1,13 @@
+asset_id,path_id,period,status,reason,start_lag,end_lag,minimum_pairs,positive_fraction,train_end_lag,preferred,exposure_min,exposure_max,slow_power_pattern,model,kind,amplitude,shape,parameter,anchor_lag,sse,rmse,r_squared,boundary,heldout_rmse
+BTC_FUT_202512,observed,full,computed,,1,100,500,0.73,66.0,undetermined,0.9316473000683527,0.9993164730006835,False,power,power,0.26910819910837297,0.6229767473197341,beta,1.0,0.0882730904616417,0.02971078768084779,0.6236361360203406,False,0.022798420041505018
+BTC_FUT_202512,observed,full,computed,,1,100,500,0.73,66.0,undetermined,0.9316473000683527,0.9993164730006835,False,exponential,exponential,0.1740561709789286,0.060607088629781106,lambda,1.0,0.06471709546324386,0.02543955492205865,0.7240702009331922,False,0.02382682202662874
+BTC_FUT_202512,observed,full,computed,,5,100,500,0.71875,68.0,undetermined,0.9316473000683527,0.9965823650034177,False,power,power,0.17346911887812475,0.9884720867815256,beta,5.0,0.06662279464820864,0.02634364143872622,0.5910897875875862,False,0.021893003847128313
+BTC_FUT_202512,observed,full,computed,,5,100,500,0.71875,68.0,undetermined,0.9316473000683527,0.9965823650034177,False,exponential,exponential,0.14186328867139641,0.06188327093532035,lambda,5.0,0.05526619385322575,0.023993530780283982,0.6607931086187808,False,0.024365135524551364
+BTC_FUT_202512,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+BTC_FUT_202512,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,

@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+BTC_FUT_202512,observed,1464,1464,1,0,0,0,1463,2025-10-01 01:00:00+00:00,2025-12-01 00:00:00+00:00,-0.00016909125996951506,0.005005053797661566,0.000683526999316473,4.41157054348838,computed,,-0.21150913049350403,0.019138755980861243

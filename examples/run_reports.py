@@ -6,6 +6,8 @@ from pathlib import Path
 
 from financial_stylized_facts.adapters import daily_csv, file_sha256, write_prepared
 from financial_stylized_facts.report import analyze_csv
+from financial_stylized_facts.data import AnalysisConfig, read_prices
+import pandas as pd
 
 
 DATA = Path(__file__).resolve().parents[1] / "data" / "examples"
@@ -25,18 +27,47 @@ def load_cases(dataset, data_dir=DATA):
         source = data_dir / entry["file"]
         if file_sha256(source) != entry["sha256"]:
             raise ValueError(f"Snapshot checksum mismatch: {name}")
-        frame, config, info = daily_csv(
-            source, asset=entry["asset"], date_column=entry["date_column"],
-            price_column=entry["price_column"], price_type=entry["price_type"],
-            volume_column=entry["volume_column"], volume_unit=entry["volume_unit"],
-            missing_policy=entry["missing_policy"], source_name=entry["source_name"],
-        )
+        kind = entry.get("sample_kind", "daily")
+        if kind == "hourly":
+            config = AnalysisConfig(frequency="1h", timezone="UTC", max_staleness="0s",
+                                    session_policy="continuous", allow_missing_prices=True,
+                                    price_type=entry["price_type"], volume_kind="interval",
+                                    volume_unit=entry["volume_unit"])
+            raw = pd.read_csv(source)
+            if not raw.contract_id.eq(entry["contract_id"]).all():
+                raise ValueError(f"Mixed futures contracts: {name}")
+            frame = read_prices(source, config)
+            frame["asset_id"], frame["path_id"] = entry["asset"], "observed"
+            info = {"source_name": entry["source_name"], "source_sha256": file_sha256(source),
+                    "adapter": "hourly-contract-csv", "selected_source_rows": len(frame),
+                    "rows_removed": 0, "missing_source_prices": int(frame.price.isna().sum()),
+                    "notes": [], "source_files": entry["source_files"]}
+        else:
+            frame, config, info = daily_csv(
+                source, asset=entry["asset"], date_column=entry["date_column"],
+                price_column=entry["price_column"], price_type=entry["price_type"],
+                volume_column=entry["volume_column"], volume_unit=entry["volume_unit"],
+                missing_policy=entry["missing_policy"], source_name=entry["source_name"],
+            )
+            if kind == "monthly":
+                periods = frame.timestamp.dt.tz_localize(None).dt.to_period("M")
+                expected = pd.period_range(periods.iloc[0], periods.iloc[-1], freq="M")
+                if list(periods) != list(expected):
+                    raise ValueError(f"Monthly sample must retain every month: {name}")
+                config = replace(config, observation_unit="calendar-month")
+                frame["session_id"] = "monthly-series"
+                info.update(adapter="monthly-labelled-csv", notes=[])
+            elif kind != "daily":
+                raise ValueError(f"Unknown sample kind: {kind}")
         if info["selected_source_rows"] != entry["rows"]:
             raise ValueError(f"Snapshot row count mismatch: {name}")
         info.update(source_url=entry["source_url"], data_license=entry["license"],
                     license_url=entry["license_url"], attribution=entry["attribution"],
                     upstream_sha256=entry["source_sha256"], retrieved_on=catalog["retrieved_on"])
         info["notes"] += entry["notes"]
+        for key in ("display_name", "report_note", "contract_id", "expiry", "strike", "option_type", "underlying", "sample_kind"):
+            if key in entry:
+                info[key] = entry[key]
         # Fixed settings across assets; no parameter selection based on results.
         config = replace(config, max_lag=30, volatility_max_lag=100, coarse_factor=5,
                          bootstrap_reps=399, garch_max_points=10000, garch_max_segments=4)
@@ -55,7 +86,7 @@ def run(dataset, output, data_dir=DATA):
         prepared, report = output / name / "input", output / name / "report"
         manifest = write_prepared(frame, config, info, source=source, output=prepared)
         result = analyze_csv(prepared / "prices.csv", report, config,
-                             title=f"{name} · 真实市场统计报告", source_provenance=manifest)
+                             title=f"{info.get('display_name', name)} · 真实市场统计报告", source_provenance=manifest)
         group = result["groups"][0]
         summary.append({"dataset": name, "source_sha256": info["source_sha256"],
                         "canonical_sha256": manifest["canonical_sha256"],

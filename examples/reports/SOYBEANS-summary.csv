@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+SOYBEANS,observed,792,792,1,0,0,0,791,1960-01-01 00:00:00+00:00,2025-12-01 00:00:00+00:00,0.0019513020791938093,0.0564396432319996,0.056890012642225034,6.125678519329098,computed,,0.0531370400949205,0.01390644753476612

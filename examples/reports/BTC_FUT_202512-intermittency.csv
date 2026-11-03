@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+BTC_FUT_202512,observed,10,146,1460,3,15,1.3062068965517244,0.9034482758620689,1.1786666666666612,0.026,0.078,False,computed,
+BTC_FUT_202512,observed,30,48,1440,23,15,1.246808510638298,0.7021276595744681,1.5191489361702128,0.154,0.46199999999999997,False,computed,
+BTC_FUT_202512,observed,60,24,1440,23,15,1.9217391304347824,0.5304347826086956,1.6434782608695653,0.01,0.03,True,computed,

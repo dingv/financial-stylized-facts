@@ -4,6 +4,7 @@ EIA workbooks require the optional extraction dependency xlrd==2.0.2.
 Source filenames, download URLs and checksums are in data/examples/manifest.json.
 """
 import argparse
+from market_sources import worldbank_rows, binance_rows, taifex_rows, encode_csv
 import csv
 import hashlib
 import io
@@ -16,6 +17,15 @@ MARKETS = ("BTC", "ETH", "BRENT", "HENRYHUB")
 
 
 def extract(source, entry):
+    if entry["source_format"] == "worldbank-monthly":
+        columns, rows = worldbank_rows(source, entry["source_column"])
+        return encode_csv(columns, rows)
+    if entry["source_format"] == "binance-hourly":
+        columns, rows = binance_rows(source.parent, entry)
+        return encode_csv(columns, rows)
+    if entry["source_format"] == "taifex-options":
+        columns, rows = taifex_rows(source, entry)
+        return encode_csv(columns, rows)
     if entry["source_format"] == "coinmetrics-csv":
         with source.open(newline="", encoding="utf-8") as stream:
             rows = [(r["time"][:10], r["PriceUSD"], r["volume_reported_spot_usd_1d"])
@@ -49,13 +59,13 @@ def extract(source, entry):
     return output.getvalue().encode("utf-8")
 
 
-def rebuild(raw, output, catalog=CATALOG):
+def rebuild(raw, output, catalog=CATALOG, datasets=MARKETS):
     raw, output = Path(raw), Path(output)
     if output.exists():
         raise FileExistsError(f"Output already exists: {output}")
     entries = json.loads(Path(catalog).read_text(encoding="utf-8"))["datasets"]
     prepared = {}
-    for name in MARKETS:
+    for name in datasets:
         entry = entries[name]
         source = raw / entry["source_file"]
         if hashlib.sha256(source.read_bytes()).hexdigest() != entry["source_sha256"]:
@@ -73,5 +83,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--datasets", nargs="+", default=list(MARKETS))
     args = parser.parse_args()
-    rebuild(args.raw, args.output)
+    rebuild(args.raw, args.output, datasets=args.datasets)

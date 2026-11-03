@@ -16,7 +16,7 @@ spec.loader.exec_module(examples)
 
 def test_real_snapshots_use_actual_prices_and_explicit_observation_clock():
     cases = {name: (frame, config, info) for name, _, frame, config, info in examples.load_cases("all")}
-    assert set(cases) == {"AAPL", "MSFT", "EURUSD", "USDJPY", "BTC", "ETH", "BRENT", "HENRYHUB"}
+    assert set(cases) == {"AAPL", "MSFT", "EURUSD", "USDJPY", "BTC", "ETH", "BRENT", "HENRYHUB", "GOLD", "SILVER", "COPPER", "WHEAT", "MAIZE", "SOYBEANS", "BTC_FUT_202512", "ETH_FUT_202512", "TXO_202512_24000_CALL", "TXO_202512_24000_PUT"}
     aapl, config, info = cases["AAPL"]
     assert len(aapl) == 3270
     assert aapl.price.iloc[0] == pytest.approx(4.186662803811)

@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+ETH_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.25,True,excess_kurtosis,4.479104595452704,-0.25343208975086445,0.20752807653885483,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+ETH_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.25,True,tail_probability_3sigma,0.014154281670205236,0.0007077140835102619,0.004953998584571833,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+ETH_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.25,True,residual_q10,14.374313662907229,3.3724896218039695,22.486844660240745,0.125,0.125,0.125,"[0.07882243987149905, 0.17411612240213004]",24
+ETH_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.25,True,squared_residual_q10,10.454839855651818,2.458021257561042,19.4819571371986,0.29,0.29,0.29,"[0.22472133777102946, 0.35462930782762503]",57

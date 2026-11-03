@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+SOYBEANS,observed,1,computed,,199,0,0.005,0.005,0.01,False,excess_kurtosis,2.322897987494673,-0.3248166346335823,0.38166544422384724,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+SOYBEANS,observed,1,computed,,199,0,0.005,0.005,0.01,False,tail_probability_3sigma,0.01349527665317139,0.0,0.006747638326585695,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+SOYBEANS,observed,1,computed,,199,0,0.005,0.005,0.01,False,residual_q10,39.750166734806264,3.250242273594837,21.579205718053377,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+SOYBEANS,observed,1,computed,,199,0,0.005,0.005,0.01,False,squared_residual_q10,9.404639498927864,2.461969058663212,18.852817772327306,0.365,0.365,0.365,"[0.2950489093658564, 0.4327543757099743]",72

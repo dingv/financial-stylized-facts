@@ -2,7 +2,7 @@
 
 **从市场价格与成交量生成金融典型事实的图文报告。**
 
-面向股票、外汇、加密资产、商品及其他金融时间序列，覆盖 [Cont (2001)](https://doi.org/10.1080/713665670) 总结的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
+面向股票、外汇、加密资产、商品、期货和期权等金融时间序列，覆盖 [Cont (2001)](https://doi.org/10.1080/713665670) 总结的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
 
 - **逐资产、逐路径分析**：分别展示收益分布、波动聚集、自相关和多尺度变化。
 - **结果优先的报告**：逐项结论、关键数值和图形证据一起展示；HTML 离线可读，JSON、CSV 和 PNG 可继续用于研究。
@@ -19,6 +19,10 @@
 | EUR/USD、USD/JPY 日频汇率 | 2010–2025 | Federal Reserve H.10 | [EUR/USD](examples/reports/EURUSD.html) · [USD/JPY](examples/reports/USDJPY.html) |
 | BTC、ETH 日频参考价与现货成交额 | 2020–2025 | Coin Metrics | [BTC](examples/reports/BTC.html) · [ETH](examples/reports/ETH.html) |
 | Brent 原油、Henry Hub 天然气日频现货价 | 2010–2025 | U.S. EIA | [Brent](examples/reports/BRENT.html) · [Henry Hub](examples/reports/HENRYHUB.html) |
+| 黄金、白银、铜月度均价 | 1960–2025 | World Bank Pink Sheet | [黄金](examples/reports/GOLD.html) · [白银](examples/reports/SILVER.html) · [铜](examples/reports/COPPER.html) |
+| 小麦、玉米、大豆月度均价 | 1960–2025 | World Bank Pink Sheet | [小麦](examples/reports/WHEAT.html) · [玉米](examples/reports/MAIZE.html) · [大豆](examples/reports/SOYBEANS.html) |
+| BTC、ETH 交割期货小时价格 | 2025-10 至 2025-11，12 月到期 | Binance Vision | [BTC 期货](examples/reports/BTC_FUT_202512.html) · [ETH 期货](examples/reports/ETH_FUT_202512.html) |
+| 台指看涨／看跌期权日结算价 | 2025-03 至 2025-12，K=24000 | TAIFEX | [看涨](examples/reports/TXO_202512_24000_CALL.html) · [看跌](examples/reports/TXO_202512_24000_PUT.html) |
 
 数据来源和各样本许可见[数据说明](data/README.md)。
 
@@ -40,7 +44,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为八组真实数据分别生成报告。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为十八组真实数据分别生成报告。
 
 分析自己的分钟价格：
 

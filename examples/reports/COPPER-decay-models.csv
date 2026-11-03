@@ -1,0 +1,13 @@
+asset_id,path_id,period,status,reason,start_lag,end_lag,minimum_pairs,positive_fraction,train_end_lag,preferred,exposure_min,exposure_max,slow_power_pattern,model,kind,amplitude,shape,parameter,anchor_lag,sse,rmse,r_squared,boundary,heldout_rmse
+COPPER,observed,full,computed,,1,100,500,0.49,66.0,exponential,0.8735777496839444,0.9987357774968394,False,power,power,0.3739710144447273,0.8292336038789055,beta,1.0,0.21981007507598208,0.04688390716183775,0.5472421958329993,False,0.04057575685304892
+COPPER,observed,full,computed,,1,100,500,0.49,66.0,exponential,0.8735777496839444,0.9987357774968394,False,exponential,exponential,0.25594475317623006,0.10002420700311795,lambda,1.0,0.14875019966848205,0.0385681474365158,0.693609067973683,False,0.035994462462450846
+COPPER,observed,full,computed,,5,100,500,0.46875,68.0,undetermined,0.8735777496839444,0.9936788874841972,False,power,power,0.22957748956177698,1.5338037841342642,beta,5.0,0.1638718673817329,0.04131583980218383,0.4770389954692027,False,0.03790050436897788
+COPPER,observed,full,computed,,5,100,500,0.46875,68.0,undetermined,0.8735777496839444,0.9936788874841972,False,exponential,exponential,0.18564547209956556,0.10504265612617794,lambda,5.0,0.13911337307104557,0.03806701506759789,0.5560502819228188,False,0.03685726880946955
+COPPER,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+COPPER,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,

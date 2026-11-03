@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+BTC_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.64,True,excess_kurtosis,5.004953213787182,-0.22707951556131467,0.25859456548848986,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+BTC_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.64,True,tail_probability_3sigma,0.01556970983722576,0.0007077140835102619,0.004953998584571833,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+BTC_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.64,True,residual_q10,11.767950560537292,3.599614844023565,20.074694208635112,0.32,0.32,0.32,"[0.25262121284333056, 0.38610778136882]",63
+BTC_FUT_202512,observed,1,computed,,199,0,0.005,0.005,0.64,True,squared_residual_q10,6.855237816398792,2.770893760668985,18.514259623528783,0.645,0.645,0.645,"[0.5723964890050729, 0.7096976869199605]",128

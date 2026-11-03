@@ -1,0 +1,2 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported
+GOLD,observed,1,unstable_null,拟合持续性接近 1；平稳 Gaussian GARCH 模拟参照不可靠,199,0,,,,False

@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+TXO_202512_24000_CALL,observed,186,186,1,0,0,0,185,2025-03-20 00:00:00+00:00,2025-12-16 00:00:00+00:00,0.009255960495262951,0.13783437933798798,0.021621621621621623,3.1326974693971446,computed,,-0.49073250992509915,0.016216216216216217

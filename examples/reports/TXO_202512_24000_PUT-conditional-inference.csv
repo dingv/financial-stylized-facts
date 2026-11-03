@@ -1,0 +1,2 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported
+TXO_202512_24000_PUT,observed,1,insufficient_data,连续收益少于 500 条,,,,,,

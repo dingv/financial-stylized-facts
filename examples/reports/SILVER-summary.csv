@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+SILVER,observed,792,792,1,0,0,0,791,1960-01-01 00:00:00+00:00,2025-12-01 00:00:00+00:00,0.005356917751518626,0.07342144177349372,0.24399494310998734,9.845057545842804,computed,,0.4878612946020878,0.012642225031605562

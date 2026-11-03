@@ -1,0 +1,13 @@
+asset_id,path_id,period,status,reason,start_lag,end_lag,minimum_pairs,positive_fraction,train_end_lag,preferred,exposure_min,exposure_max,slow_power_pattern,model,kind,amplitude,shape,parameter,anchor_lag,sse,rmse,r_squared,boundary,heldout_rmse
+ETH_FUT_202512,observed,full,computed,,1,100,500,0.72,66.0,undetermined,0.9316473000683527,0.9993164730006835,False,power,power,0.20758006938048978,0.5408591131805041,beta,1.0,0.0854660969856768,0.029234585166490187,0.49275788005595067,False,0.02823944023992966
+ETH_FUT_202512,observed,full,computed,,1,100,500,0.72,66.0,undetermined,0.9316473000683527,0.9993164730006835,False,exponential,exponential,0.11182389331628832,0.03512009534142927,lambda,1.0,0.09126229867700228,0.030209650556900235,0.45835736643446234,False,0.030034172264877135
+ETH_FUT_202512,observed,full,computed,,5,100,500,0.7083333333333334,68.0,undetermined,0.9316473000683527,0.9965823650034177,False,power,power,0.11347525471908343,0.6890503668782373,beta,5.0,0.08056673466217482,0.02896958438427542,0.33882514656823537,False,0.028678314116068294
+ETH_FUT_202512,observed,full,computed,,5,100,500,0.7083333333333334,68.0,undetermined,0.9316473000683527,0.9965823650034177,False,exponential,exponential,0.08360424160341294,0.028819107386749948,lambda,5.0,0.07827765449624267,0.028555073705663257,0.35761059504830517,False,0.02973649810824828
+ETH_FUT_202512,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,,,,,,,unavailable,,,,,,,,,,
+ETH_FUT_202512,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,,,,,,,unavailable,,,,,,,,,,

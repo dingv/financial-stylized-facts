@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+ETH_FUT_202512,observed,10,146,1460,3,15,1.171954022988506,0.9034482758620689,1.3062068965517242,0.127,0.381,False,computed,
+ETH_FUT_202512,observed,30,48,1440,23,15,1.1106382978723404,0.7021276595744681,1.3829787234042554,0.33,0.99,False,computed,
+ETH_FUT_202512,observed,60,24,1440,23,15,1.2260869565217392,0.5304347826086956,1.5113043478260806,0.233,0.6990000000000001,False,computed,

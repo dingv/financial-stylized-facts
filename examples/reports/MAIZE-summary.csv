@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+MAIZE,observed,792,792,1,0,0,0,791,1960-01-01 00:00:00+00:00,2025-12-01 00:00:00+00:00,0.0019213101224887384,0.055300757222393956,0.05815423514538559,2.742294804248605,computed,,-0.02039369269974321,0.007585335018963337

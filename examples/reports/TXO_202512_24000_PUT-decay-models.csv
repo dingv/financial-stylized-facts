@@ -1,0 +1,11 @@
+asset_id,path_id,period,status,reason,start_lag,end_lag,minimum_pairs,model
+TXO_202512_24000_PUT,observed,full,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,unavailable
+TXO_202512_24000_PUT,observed,full,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_1,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_2,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_3,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,1,100,500,unavailable
+TXO_202512_24000_PUT,observed,block_4,insufficient_data,拟合范围须完整、至少 20 个滞后且每点配对充分,5,100,500,unavailable
