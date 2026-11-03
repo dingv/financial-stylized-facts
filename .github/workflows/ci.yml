@@ -1,9 +1,9 @@
-name: Conda tests and package trial
+name: Tests and real-data examples
 
 on:
   push:
     branches: [main]
-    paths: ["src/**", "tests/**", "tools/**", "examples/**", "pyproject.toml", "environment.yml", "MANIFEST.in", "README.md", ".github/workflows/**"]
+    paths: ["src/**", "tests/**", "data/examples/**", "examples/**", "pyproject.toml", "environment.yml", "README.md", ".github/workflows/**"]
   pull_request:
   workflow_dispatch:
 
@@ -36,7 +36,9 @@ jobs:
           auto-activate: false
       - name: Install in the dedicated Conda environment
         run: |
-          python -m pip install --no-deps --no-build-isolation .
+          python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Test the sdist-built wheel outside the checkout
-        run: python tools/verify_distribution.py --output "$RUNNER_TEMP/fsf-package-check"
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Generate reports from bundled real market data
+        run: python examples/run_reports.py --dataset all --output "$RUNNER_TEMP/fsf-real-examples"

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "Please cite this software and record the version, commit, sampling settings, and data source. This is a private pre-release; no DOI has been assigned."
+message: "Please cite this software and the original data sources when using it in research."
 type: software
 title: "Financial Stylized Facts"
 authors:

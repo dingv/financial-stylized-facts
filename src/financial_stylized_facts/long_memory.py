@@ -1,7 +1,7 @@
 """Lo modified R/S on absolute returns; a conditional short-memory diagnostic.
 
 Never infer a Hurst exponent, a power law, or long memory from rejection alone.
-See docs/internal/long-memory.md for assumptions, references and finite-q limits.
+See docs/methods.md for assumptions, references and finite-q limits.
 """
 from math import pi, sqrt
 

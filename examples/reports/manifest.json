@@ -1,0 +1,38 @@
+[
+  {
+    "dataset": "AAPL",
+    "source_sha256": "6af8063d42b79cf89ba68dfefe5d8107b8a330f962d736dd3ef3428e4ddcf9dd",
+    "canonical_sha256": "480b4ec6216d6542b87a82fe7473a1fdbdeb57a59a081341a51d55d19477ab5a",
+    "n_returns": 3269,
+    "excess_kurtosis": 105.75802536354945,
+    "report": "AAPL.html",
+    "report_sha256": "53c942b5688b7310ebfd149e8861c1a6da00a081ab630a055b105df124669d89"
+  },
+  {
+    "dataset": "MSFT",
+    "source_sha256": "3feb728e4b1bad8b9bf615ab83489ca5834543081b9ad3b6cef9e9e117a28546",
+    "canonical_sha256": "5e90295b3352e39f50819b6a491ae28f8cfe5d71f864d8aae679d2e1277f2fa2",
+    "n_returns": 3269,
+    "excess_kurtosis": 9.137434735582286,
+    "report": "MSFT.html",
+    "report_sha256": "ae784f7e2d6d78e71c33b657b54879cc5f8394800d383acfd0bb13af8a76fd81"
+  },
+  {
+    "dataset": "EURUSD",
+    "source_sha256": "3797b653eb70aa458b26a8827721563d51a8fdafacc82adc7ceefb0f6cef8310",
+    "canonical_sha256": "3288cdcc58df3925dc67c6be410f88f625dc86d7dc61e0fd229ed42704dc6d1b",
+    "n_returns": 4000,
+    "excess_kurtosis": 1.7744301204262385,
+    "report": "EURUSD.html",
+    "report_sha256": "e41f4136f1e328cc43e3b07d21fdf72261d68b4f3f64c328eb4a4d31cce99062"
+  },
+  {
+    "dataset": "USDJPY",
+    "source_sha256": "fc4d00a3078148fbeeb778a0bf0083b73d31497803fa113042713c911551b130",
+    "canonical_sha256": "2db91ca87e360ab2bda12334fc06cf6b5c9f8192b4ccb98b9fd6dd3e863b277f",
+    "n_returns": 4000,
+    "excess_kurtosis": 4.108144755627563,
+    "report": "USDJPY.html",
+    "report_sha256": "0575eeecb906ff6d51f90c86a9324f57d880275f0bf62cd7e75e7257073a4823"
+  }
+]

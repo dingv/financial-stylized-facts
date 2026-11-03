@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+EUR/USD,observed,4001,4001,1,0,0,0,4000,2010-01-04 00:00:00+00:00,2025-12-31 00:00:00+00:00,-5.1471435120957354e-05,0.005242141563751434,0.009,1.7744301204262385,computed,,0.009916579779471054,0.011

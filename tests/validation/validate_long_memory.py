@@ -1,7 +1,7 @@
 """Bounded, fixed-seed audit: Lo R/S is sensitive to both memory and breaks.
 
 No tuning on outcomes; raw per-test rates, not the report's family-adjusted rule.
-All outputs belong in tmp. References/algorithm in docs/internal/long-memory.md.
+All outputs belong in tmp. References/algorithm in docs/methods.md.
 """
 import argparse
 import json

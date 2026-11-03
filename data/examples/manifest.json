@@ -1,0 +1,113 @@
+{
+  "retrieved_on": "2026-11-03",
+  "datasets": {
+    "AAPL": {
+      "file": "AAPL.csv",
+      "asset": "AAPL",
+      "source_name": "Quandl WIKI Prices via Bokeh sampledata",
+      "source_url": "https://raw.githubusercontent.com/bokeh/bokeh_sampledata/5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f/src/bokeh_sampledata/_data/stocks.csv.gz",
+      "source_sha256": "5abadf99b2d394f920120a27de6f0df129859d71d4cfb0bf661bcc99446ab1fd",
+      "source_revision": "5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f",
+      "license": "Public domain, as stated in Bokeh stocks documentation and its archived Quandl publisher notice",
+      "license_url": "https://github.com/bokeh/bokeh_sampledata/blob/5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f/src/bokeh_sampledata/stocks.py",
+      "publisher_notice_url": "https://web.archive.org/web/20150411011214/https://www.quandl.com/data/WIKI",
+      "attribution": "Quandl WIKI Prices. Archived copy supplied by marketneutral on Kaggle.",
+      "date_column": "date",
+      "price_column": "adj_close",
+      "price_type": "split- and dividend-adjusted close (USD), source snapshot",
+      "volume_column": "volume",
+      "volume_unit": "unadjusted shares",
+      "missing_policy": "available",
+      "start": "2000-03-01",
+      "end": "2013-03-01",
+      "rows": 3270,
+      "missing_prices": 0,
+      "notes": [
+        "股票使用源文件的复权收盘价；原始 OHLC 和成交量未复权。复权价格包含样本期之后公司行动的调整。",
+        "该固定历史样本用于研究示例，不代表实时行情；未独立审计每项公司行动或交易日完整性。",
+        "逐资产独立分析全部随附观测，不按结果选择样本。"
+      ],
+      "sha256": "6af8063d42b79cf89ba68dfefe5d8107b8a330f962d736dd3ef3428e4ddcf9dd"
+    },
+    "MSFT": {
+      "file": "MSFT.csv",
+      "asset": "MSFT",
+      "source_name": "Quandl WIKI Prices via Bokeh sampledata",
+      "source_url": "https://raw.githubusercontent.com/bokeh/bokeh_sampledata/5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f/src/bokeh_sampledata/_data/stocks.csv.gz",
+      "source_sha256": "5abadf99b2d394f920120a27de6f0df129859d71d4cfb0bf661bcc99446ab1fd",
+      "source_revision": "5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f",
+      "license": "Public domain, as stated in Bokeh stocks documentation and its archived Quandl publisher notice",
+      "license_url": "https://github.com/bokeh/bokeh_sampledata/blob/5999dc3b42e7ec445dcd4c0e15f6b8b8a1ab824f/src/bokeh_sampledata/stocks.py",
+      "publisher_notice_url": "https://web.archive.org/web/20150411011214/https://www.quandl.com/data/WIKI",
+      "attribution": "Quandl WIKI Prices. Archived copy supplied by marketneutral on Kaggle.",
+      "date_column": "date",
+      "price_column": "adj_close",
+      "price_type": "split- and dividend-adjusted close (USD), source snapshot",
+      "volume_column": "volume",
+      "volume_unit": "unadjusted shares",
+      "missing_policy": "available",
+      "start": "2000-03-01",
+      "end": "2013-03-01",
+      "rows": 3270,
+      "missing_prices": 0,
+      "notes": [
+        "股票使用源文件的复权收盘价；原始 OHLC 和成交量未复权。复权价格包含样本期之后公司行动的调整。",
+        "该固定历史样本用于研究示例，不代表实时行情；未独立审计每项公司行动或交易日完整性。",
+        "逐资产独立分析全部随附观测，不按结果选择样本。"
+      ],
+      "sha256": "3feb728e4b1bad8b9bf615ab83489ca5834543081b9ad3b6cef9e9e117a28546"
+    },
+    "EURUSD": {
+      "file": "EURUSD.csv",
+      "asset": "EUR/USD",
+      "source_name": "Board of Governors of the Federal Reserve System, H.10",
+      "source_url": "https://www.federalreserve.gov/releases/h10/hist/dat00_eu.htm",
+      "source_sha256": "df33f526296733d4dcefb4f8fa688a1991155cb925a49c3130508af76e3f7e51",
+      "license": "Public domain; cite Federal Reserve Board",
+      "license_url": "https://www.federalreserve.gov/disclaimer.htm",
+      "attribution": "Board of Governors of the Federal Reserve System (US), Foreign Exchange Rates, H.10.",
+      "date_column": "date",
+      "price_column": "rate",
+      "price_type": "New York noon buying reference rate (USD per EUR)",
+      "volume_column": null,
+      "volume_unit": null,
+      "missing_policy": "available",
+      "start": "2010-01-01",
+      "end": "2025-12-31",
+      "rows": 4174,
+      "missing_prices": 173,
+      "notes": [
+        "预先固定 2010–2025 年的完整日历范围，不按统计结果选取日期。源 ND 在 CSV 中保留为空白。",
+        "报告明确使用相邻有效报价收益，跳过 ND；一步是有效观测，可能跨越周末或假日，不是固定 24 小时。",
+        "纽约中午参考汇率不是交易所收盘价；没有成交量。未插值、去极值或合成价格。"
+      ],
+      "sha256": "3797b653eb70aa458b26a8827721563d51a8fdafacc82adc7ceefb0f6cef8310"
+    },
+    "USDJPY": {
+      "file": "USDJPY.csv",
+      "asset": "USD/JPY",
+      "source_name": "Board of Governors of the Federal Reserve System, H.10",
+      "source_url": "https://www.federalreserve.gov/releases/h10/hist/dat00_ja.htm",
+      "source_sha256": "63fc726453ccd8a1ebe8f8edd9215b0eb9959c0c02d3ece461a7018f42d7d1a4",
+      "license": "Public domain; cite Federal Reserve Board",
+      "license_url": "https://www.federalreserve.gov/disclaimer.htm",
+      "attribution": "Board of Governors of the Federal Reserve System (US), Foreign Exchange Rates, H.10.",
+      "date_column": "date",
+      "price_column": "rate",
+      "price_type": "New York noon buying reference rate (JPY per USD)",
+      "volume_column": null,
+      "volume_unit": null,
+      "missing_policy": "available",
+      "start": "2010-01-01",
+      "end": "2025-12-31",
+      "rows": 4174,
+      "missing_prices": 173,
+      "notes": [
+        "预先固定 2010–2025 年的完整日历范围，不按统计结果选取日期。源 ND 在 CSV 中保留为空白。",
+        "报告明确使用相邻有效报价收益，跳过 ND；一步是有效观测，可能跨越周末或假日，不是固定 24 小时。",
+        "纽约中午参考汇率不是交易所收盘价；没有成交量。未插值、去极值或合成价格。"
+      ],
+      "sha256": "fc4d00a3078148fbeeb778a0bf0083b73d31497803fa113042713c911551b130"
+    }
+  }
+}

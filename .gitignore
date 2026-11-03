@@ -20,7 +20,13 @@ venv/
 *.pem
 *.key
 # External data and generated artifacts
-/data/
+/data/*
+!/data/README.md
+!/data/examples/
+/.local/
+/AGENTS.md
+**/AGENTS.md
+.agents/
 /outputs/
 /artifacts/
 /reports/

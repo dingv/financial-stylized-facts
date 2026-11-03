@@ -14,7 +14,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="生成逐资产、逐路径的金融统计诊断报告")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
-    demo = commands.add_parser("demo", help="无需外部数据，一条命令生成可重现的合成演示报告")
+    demo = commands.add_parser("demo", help="合成序列算法校验；真实数据示例见 examples/run_reports.py")
     demo.add_argument("--output",type=Path,required=True,help="新的目录，保存合成输入、配置和 report/index.html")
     demo.add_argument("--kind",choices=["basic","activity"],default="basic")
     demo.add_argument("--seed",type=int,default=20261102)

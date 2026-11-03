@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+AAPL,observed,3270,3270,1,0,0,0,3269,2000-03-01 00:00:00+00:00,2013-03-01 00:00:00+00:00,0.0007940952804606961,0.030327192943477924,0.007953502600183543,105.75802536354945,computed,,-4.431127782981212,0.00948302233098807

@@ -1,78 +1,88 @@
 # Financial Stylized Facts
 
-面向不同金融市场的典型统计事实（stylized facts）分析库。
+**从市场价格与成交量生成金融典型事实的图文报告。**
 
-当前首版目标、进度与验收要求见[项目进度](docs/status.md)。
+面向股票、外汇及其他金融时间序列，覆盖 Cont 的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
 
-覆盖 Cont 总结的 11 项事实：输入价格及可选成交量数据，生成便于阅读的图文报告，以及可复核的统计结果。用于比较真实市场与模拟市场，不局限于外汇。当前不直接接受预计算收益率。
+- **逐资产、逐路径分析**：分别展示收益分布、波动聚集、自相关和多尺度变化。
+- **报告与数值一起输出**：图表配有根据计算结果生成的说明；HTML 离线可读，JSON、CSV 和 PNG 可继续用于研究。
+- **明确的统计定义**：记录采样频率、缺失策略、样本量与适用的不确定性估计。
+- **本地运行**：分析和报告生成无需大模型、API 密钥或在线服务。
 
-**当前版本：十一项事实已有描述性诊断。** 支持 CSV 价格输入、时间采样、收益分布、自相关、涨跌不对称、多尺度分布变化、间歇性、收益与后续波动关系，较长范围的波动相关对照、区间成交量与波动关系，粗细尺度波动的时间方向对照，以及 GARCH 调整后的残差厚尾，生成独立 HTML 报告与统计数据。分布与部分量价统计量已有区块重采样近似区间；早期时间相关指标另有 HAC 区间、带宽对照及单路径内多重比较区间。长尺度部分增加 Lo 修正 R/S 的窗口与带宽对照，但不自动宣称长记忆。条件厚尾需要可选 arch 依赖；各方法有明确适用条件，不提供“11 项全部通过”的统一评分。
+## 真实数据示例
 
-## 安装和第一份报告
+仓库包含真实历史数据、生成脚本和配套报告，克隆后即可运行。
 
-当前是私有试用版，尚未上传 PyPI。取得源码后，在仓库目录创建项目专用 Conda 环境（已有环境可跳过创建）：
+| 数据 | 覆盖时间 | 来源 | 报告 |
+| --- | --- | --- | --- |
+| AAPL、MSFT 日频股票 | 2000–2013 | Quandl WIKI，经 Bokeh 数据集分发 | [AAPL](examples/reports/AAPL.html) · [MSFT](examples/reports/MSFT.html) |
+| EUR/USD、USD/JPY 日频汇率 | 2010–2025 | Federal Reserve H.10 | [EUR/USD](examples/reports/EURUSD.html) · [USD/JPY](examples/reports/USDJPY.html) |
+
+HTML 请下载后用浏览器打开，GitHub 文件页不直接渲染 HTML。[示例说明](examples/README.md)包含运行命令，[数据说明](data/README.md)记录来源、字段、分发条件和处理方式。
+
+**AAPL：价格、收益与波动聚集**
+
+![AAPL 真实价格与收益](examples/reports/images/AAPL-price.png)
+
+![AAPL 收益与波动的自相关](examples/reports/images/AAPL-acf.png)
+
+## 安装与运行
 
 ```bash
+git clone https://github.com/dingv/financial-stylized-facts.git
+cd financial-stylized-facts
 conda env create -f environment.yml
 conda activate financial-stylized-facts
-python -m pip install --no-deps --no-build-isolation .
-fsf demo --output /tmp/fsf-first-demo
+python -m pip install --no-deps --no-build-isolation -e .
+
+python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-first-demo/report/index.html`，即可切换查看五种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH、有明显偏度的独立收益，以及负冲击后增大波动的示意过程。它们不是拟合得到的真实市场模型。HTML 已嵌入图片，可以单独复制到本地打开；JSON 与 CSV 用于核对数值。输出目录须尚不存在，重复试用请换一个新目录。演示已包含在安装包内，不依赖当前工作目录或额外行情下载。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为四组真实数据分别生成报告；输出目录须尚不存在。
 
-wheel 安装、服务器报告下载和常见问题见[安装试用指南](docs/installation.md)。
-
-报告先给当前路径的具体观察，再逐项看图与限制；每个观察都能追溯到统计结果。它会提醒极端观测对峰度的影响、数据缺口和拟合覆盖率，不把十一项事实当作自动评分表。
-
-自己的 CSV 至少包含 `timestamp,price`；多资产、多路径使用 `asset_id,path_id`。详见[使用指南](docs/usage.md)。EBS Tick、两组 FRED 外汇及明确字段的日频 CSV 可先用 `fsf prepare` 转换，见[真实数据指南](docs/data-guide.md)与[第一轮验证结果](docs/real-data-validation.md)。
-
-量价与时间方向另有一个刻意构造的校验示例：
+分析自己的分钟价格：
 
 ```bash
-fsf demo --kind activity --output /tmp/fsf-activity-demo
+fsf analyze prices.csv --output /tmp/my-report \
+  --frequency 5min --timezone Asia/Shanghai \
+  --max-staleness 30s --price-type transaction
 ```
 
-它展示同一构造过程及其时间反转：粗细波动差值应反号，同期量价关系应保持。成交量是人为生成的，只用于检查计算和阅读图形，不能当作真实市场证据。
+输入至少包含 `timestamp,price`，可选 `asset_id,path_id,session_id,volume`。`max-staleness` 是允许沿用旧价的时长，应按数据频率设置。日收盘价使用观测序号模式，详见[使用指南](docs/usage.md)。
 
-## 已提供的工作流程
-
-- 统一的数据检查与采样约定，明确时间尺度、缺失值和交易时段。
-- 逐资产、逐模拟路径分析，展示统计量、图形和证据局限。
-- 一键生成 HTML 报告，并导出机器可读结果与运行配置。
-- 用已知性质的合成序列和多个真实市场的数据验证。
-
-指标不是所有市场都必须通过的打分表。数据不足、缺少成交量或检验不适用时，将明确说明原因。
-
-Python 入口：
+Python 接口：
 
 ```python
 from financial_stylized_facts import AnalysisConfig, analyze_csv
 
-result = analyze_csv("prices.csv", "/tmp/my-fsf-report",
-                     AnalysisConfig(frequency="5min", price_type="transaction"))
+result = analyze_csv(
+    "prices.csv", "/tmp/my-report",
+    AnalysisConfig(frequency="5min", timezone="Asia/Shanghai",
+                   max_staleness="30s", price_type="transaction"),
+)
 ```
 
-## 目录
+## 分析内容
 
-- `src/financial_stylized_facts/`：Python 包。
-- `docs/roadmap.md`：开发路线。
-- `docs/evaluation-plan.md`：11 项事实的评估与报告方案。
-- `docs/development.md`：Conda 环境使用说明。
-- `docs/internal/`：后续技术规格与实现记录。
-- `tests/`：手算、边界、成熟函数和已知性质序列验证。
-- `examples/`：可运行的合成数据示例。
+| Stylized fact | 报告中的分析 |
+| --- | --- |
+| 收益线性相关较弱 | 收益 ACF |
+| 厚尾 | 收益密度、超额峰度、经验尾概率与 Q-Q |
+| 涨跌不对称 | 左右尾、偏度、对称阈值首达时间 |
+| 聚合高斯化 | 不同时间尺度的峰度与分位数距离 |
+| 间歇性 | 滚动 RMS 与大幅波动片段 |
+| 波动聚集 | 绝对收益、平方收益 ACF |
+| 条件厚尾 | GARCH 调整前后的分布与残余相关 |
+| 波动相关缓慢衰减 | 长范围 ACF、分段对照与 Lo 修正 R/S |
+| 杠杆效应 | 收益与前后波动的相关 |
+| 成交量与波动相关 | Pearson、Spearman 与分组图 |
+| 时间尺度不对称 | 粗、细尺度波动的两个时间方向对照 |
 
-真实数据保留在仓库外，以路径或配置引用；研究结果也不默认提交到 Git。已有外汇项目可以调用本库，本库不依赖其模拟器。
+这些是研究诊断，不是所有资产都必须通过的评分表。正超额峰度不等于已证明幂律尾部，长期相关也不直接等于长记忆。没有成交量的数据会明确跳过量价分析。
 
-## 开发状态
+## 文档
 
-开发统一使用 Conda 环境 `financial-stylized-facts`，不用 venv。环境使用与重建见[开发环境](docs/development.md)，完整覆盖计划见[评估方案](docs/evaluation-plan.md)。运行 `python -m pytest -q` 验证计算和报告。
-
-首版将输入与采样结果读入内存，适合经过整理的研究数据；尚未验证超大原始逐笔文件的性能。没有内置交易日历，交易时段应由输入明确指定。报告会显示缺口、沿用价格和不可计算原因，不将这些情况伪装成有效的统计结果。
-
-项目计划开源；公开发布前再确定许可证、完善文档和验证。详见[开发路线](docs/roadmap.md)。
-
-## 引用与发布准备
-
-方法来源见[参考资料](docs/references.md)，开发反馈见[参与说明](CONTRIBUTING.md)。当前为私有试用候选，正式代码许可证和公开发布尚待维护者确认；已准备的材料与待决定事项见[发布准备](docs/release-readiness.md)。
+- [使用指南](docs/usage.md)：CSV 输入、命令行与报告阅读。
+- [数据指南](docs/data-guide.md)：股票、FRED、EBS 数据接入。
+- [统计方法](docs/methods.md)：估计量、时间单位与解释边界。
+- [参考文献](docs/references.md) · [参与开发](CONTRIBUTING.md)。

@@ -122,7 +122,7 @@ def test_probability_underflow_is_an_explicit_conservative_bound():
 
 
 def test_audit_fgn_generator_has_the_prescribed_finite_covariance():
-    from examples.validate_long_memory import fractional_gaussian_noise
+    from tests.validation.validate_long_memory import fractional_gaussian_noise
     n,h=128,.8
     class Basis:
         def __init__(self,index):

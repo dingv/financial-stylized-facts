@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+USD/JPY,observed,4001,4001,1,0,0,0,4000,2010-01-04 00:00:00+00:00,2025-12-31 00:00:00+00:00,0.00013180551722420008,0.005914424530485626,0.00975,4.108144755627563,computed,,-0.1582038475196689,0.016

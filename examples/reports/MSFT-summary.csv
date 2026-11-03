@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+MSFT,observed,3270,3270,1,0,0,0,3269,2000-03-01 00:00:00+00:00,2013-03-01 00:00:00+00:00,-6.195281356193396e-05,0.020790473567856353,0.013765677577240747,9.137434735582286,computed,,-0.0692988661271183,0.01560110125420618
