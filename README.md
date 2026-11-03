@@ -43,7 +43,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为十八组真实数据分别生成报告。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为十五组真实数据分别生成报告。
 
 分析自己的分钟价格：
 
@@ -90,6 +90,10 @@ result = analyze_csv(
 - [通用教学文档](docs/learning-guide.md)：理解 11 项指标、计算过程与评估结论。
 - [统计方法](docs/methods.md)：公式与实现细节。
 - [参考文献](docs/references.md)：方法来源与数值计算参考。
+
+## 许可
+
+代码采用 [MIT License](LICENSE)。示例数据及衍生报告的许可见[数据说明](data/README.md)。
 
 ## 参考文献
 
