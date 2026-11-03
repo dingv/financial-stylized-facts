@@ -19,6 +19,7 @@ class AnalysisConfig:
     min_pairs: int = 20
     max_grid_points: int = 2_000_000
     price_type: str = "unspecified"
+    allow_missing_prices: bool = False
     aggregation_factors: tuple[int, ...] = (1, 5, 10, 20)
     rms_window: int = 20
     burst_threshold: float = 3.0
@@ -39,6 +40,8 @@ class AnalysisConfig:
     bootstrap_max_work: int = 20000000
 
     def validate(self):
+        if not isinstance(self.allow_missing_prices, bool):
+            raise ValueError("allow_missing_prices 必须为布尔值")
         for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn", "bootstrap_reps", "bootstrap_seed", "bootstrap_max_work"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
@@ -127,11 +130,14 @@ def read_prices(path: str | Path, config: AnalysisConfig) -> pd.DataFrame:
         raise ValueError("CSV 必须包含 timestamp、price，且至少有一行数据")
     frame["timestamp"] = _timestamps(frame["timestamp"], config.timezone)
     try:
-        frame["price"] = pd.to_numeric(frame["price"], errors="raise").astype(float)
+        values = frame["price"]
+        if config.allow_missing_prices:
+            values = values.replace(r"^\s*$", np.nan, regex=True)
+        frame["price"] = pd.to_numeric(values, errors="raise").astype(float)
     except (TypeError, ValueError) as exc:
         raise ValueError("price 必须为数值；请先明确处理源数据中的缺失值") from exc
-    if not np.isfinite(frame["price"]).all() or (frame["price"] <= 0).any():
-        raise ValueError("price 必须全部有限且大于零，不自动删除异常行")
+    if np.isinf(frame["price"]).any() or (frame["price"] <= 0).any() or (not config.allow_missing_prices and frame["price"].isna().any()):
+        raise ValueError("price 必须有限且大于零；空白价格仅在 allow_missing_prices=True 时保留，不自动删除异常行")
     if ("volume" in frame) != (config.volume_kind == "interval"):
         raise ValueError("含 volume 列时必须声明 volume_kind=interval 和 volume_unit；声明后也必须提供 volume 列")
     if "volume" in frame:
@@ -201,7 +207,7 @@ def sample_path(frame: pd.DataFrame, config: AnalysisConfig):
         if total > config.max_grid_points:
             raise ValueError("输入观测数超过 max_grid_points")
         sampled["session_id"] = str(session)
-        sampled["carried"] = sampled["age_seconds"].gt(0)
+        sampled["carried"] = sampled["age_seconds"].gt(0) & sampled["price"].notna()
         sampled["log_return"] = np.log(sampled["price"]).diff()
         chunks.append(sampled)
     columns = ["timestamp", "price", "age_seconds", "session_id", "carried", "log_return"]

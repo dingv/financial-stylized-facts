@@ -339,7 +339,7 @@ def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
     return paths, embedded
 
 
-def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基础统计诊断"):
+def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基础统计诊断", source_provenance=None):
     """Analyze canonical price CSV, writing a new output directory only.
 
     Returns are non-overlapping. No model simulation or market download occurs.
@@ -350,6 +350,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         raise FileExistsError("输出目录已存在；请选一个新目录，避免覆盖已有报告")
     raw = input_path.read_bytes()
     input_hash = hashlib.sha256(raw).hexdigest()
+    if source_provenance is not None:
+        if not isinstance(source_provenance, dict) or source_provenance.get("canonical_sha256") != input_hash:
+            raise ValueError("来源清单与输入 CSV 的 SHA256 不一致")
+        if not isinstance(source_provenance.get("notes"), list) or not all(isinstance(n, str) for n in source_provenance["notes"]):
+            raise ValueError("来源清单 notes 必须为字符串列表")
     prices = read_prices(BytesIO(raw), config)
     groups = []
     for (asset, path), frame in prices.groupby(["asset_id", "path_id"], sort=True):
@@ -367,8 +372,9 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.6", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.7", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
+        "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},

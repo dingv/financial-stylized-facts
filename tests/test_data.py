@@ -98,3 +98,16 @@ def test_no_future_grid_extension_for_short_session(tmp_path):
     f = load(tmp_path, {"timestamp": ["2024-01-01T00:01Z", "2024-01-01T00:02Z"], "price": [100, 110]}, c)
     s, m = sample_path(f, c)
     assert s.empty and m["valid_returns"] == 0
+
+
+def test_explicit_missing_price_blocks_returns_without_compressing_clock(tmp_path):
+    c = AnalysisConfig(frequency="1min", allow_missing_prices=True, max_staleness="30s")
+    f = load(tmp_path, {"timestamp": ["2024-01-01T00:00Z", "2024-01-01T00:00:59Z", "2024-01-01T00:02Z", "2024-01-01T00:03Z"],
+                        "price": [100, "", 120, 132]}, c)
+    s, m = sample_path(f, c)
+    np.testing.assert_allclose(s.price, [100, np.nan, 120, 132], equal_nan=True)
+    assert s.log_return.isna().sum() == 3 and m["carried_prices"] == 0
+    assert s.log_return.iloc[-1] == pytest.approx(np.log(1.1))
+    for bad in [0, -1, np.inf, "oops", "NaN"]:
+        with pytest.raises(ValueError):
+            load(tmp_path, {"timestamp": ["2024-01-01T00:00Z"], "price": [bad]}, c)

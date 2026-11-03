@@ -19,6 +19,9 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
 <p class="muted">本版提供十一项事实的描述性诊断，并为部分分布与量价统计量提供区块重采样近似区间。缺少数据或依赖时会明确说明；完整的正式统计检验仍待补齐。</p></header>
+{% if result.data_source %}<section class="card"><h2>这份数据代表什么？</h2><p>{{ result.data_source.source_name }} · {{ config.price_type }}</p>
+<ul>{% for note in result.data_source.notes %}<li>{{ note }}</li>{% endfor %}</ul>
+<details><summary>数据转换与覆盖</summary><p>输入范围内 {{ result.data_source.selected_source_rows }} 行；源价格显式缺失 {{ result.data_source.missing_source_prices }} 行；转换移除 {{ result.data_source.rows_removed }} 行。</p><p>原文件 SHA256：<code>{{ result.data_source.source_sha256 }}</code>。输入 CSV 已与转换清单的哈希核对。</p></details></section>{% endif %}
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>

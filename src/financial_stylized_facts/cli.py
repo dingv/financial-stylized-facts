@@ -1,17 +1,38 @@
 """Command-line entry point."""
 import argparse
+import json
 from pathlib import Path
 import sys
 
 from . import __version__
 from .data import AnalysisConfig
 from .report import analyze_csv
+from .adapters import daily_csv, fred_csv, ebs_tick_csv, write_prepared
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="生成逐资产、逐路径的金融统计诊断报告")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare = commands.add_parser("prepare", help="只读转换 FRED、EBS Tick 或明确字段的日频 CSV")
+    prepare.add_argument("format", choices=["fred", "ebs-tick", "daily-csv"])
+    prepare.add_argument("input", type=Path)
+    prepare.add_argument("--output", type=Path, required=True, help="新的临时目录，保存规范 CSV 和来源清单")
+    prepare.add_argument("--asset", required=True, help="FRED 系列代码、EBS 货币对或股票标识")
+    prepare.add_argument("--start")
+    prepare.add_argument("--end")
+    prepare.add_argument("--missing-policy", choices=["preserve", "available"], default="preserve")
+    prepare.add_argument("--frequency", default="5min")
+    prepare.add_argument("--max-staleness", default="5min")
+    prepare.add_argument("--date-column", default="Date")
+    prepare.add_argument("--price-column", default="Adj Close")
+    prepare.add_argument("--price-type", help="daily-csv 必须明确价格含义，不自动推断复权")
+    prepare.add_argument("--volume-column")
+    prepare.add_argument("--volume-unit")
+    prepared = commands.add_parser("analyze-prepared", help="按转换清单的明确配置生成报告")
+    prepared.add_argument("input", type=Path, help="含 prices.csv 和 provenance.json 的转换目录")
+    prepared.add_argument("--output", type=Path, required=True)
+    prepared.add_argument("--title", default="金融市场 · 真实数据诊断")
     analyze = commands.add_parser("analyze", help="分析 canonical CSV 价格数据")
     analyze.add_argument("input", type=Path)
     analyze.add_argument("--output", type=Path, required=True)
@@ -25,6 +46,7 @@ def main(argv=None):
     analyze.add_argument("--min-pairs", type=int, default=20)
     analyze.add_argument("--max-grid-points", type=int, default=2_000_000)
     analyze.add_argument("--price-type", default="unspecified")
+    analyze.add_argument("--allow-missing-prices", action="store_true", help="保留空白价格及缺口；仍拒绝非数值、非正值和无穷大")
     analyze.add_argument("--aggregation-factors", type=int, nargs="+", default=[1, 5, 10, 20], help="基本采样间隔的整数倍，非重叠聚合")
     analyze.add_argument("--rms-window", type=int, default=20, help="滚动 RMS 的基础收益观测数")
     analyze.add_argument("--burst-threshold", type=float, default=3.0, help="大幅波动阈值：偏离本路径均值的标准差倍数")
@@ -45,9 +67,32 @@ def main(argv=None):
     analyze.add_argument("--bootstrap-max-work", type=int, default=20000000, help="每条路径的收益数×重复次数×块长方案数上限")
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
-    kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}
     try:
-        result = analyze_csv(args.input, args.output, AnalysisConfig(**kwargs), title=args.title)
+        if args.command == "prepare":
+            common = {"start": args.start, "end": args.end}
+            if args.format == "fred":
+                frame, config, info = fred_csv(args.input, series=args.asset, missing_policy=args.missing_policy, **common)
+            elif args.format == "ebs-tick":
+                frame, config, info = ebs_tick_csv(args.input, pair=args.asset, frequency=args.frequency, max_staleness=args.max_staleness, **common)
+            else:
+                frame, config, info = daily_csv(args.input, asset=args.asset, date_column=args.date_column, price_column=args.price_column,
+                                                price_type=args.price_type, volume_column=args.volume_column, volume_unit=args.volume_unit,
+                                                missing_policy=args.missing_policy, **common)
+            write_prepared(frame, config, info, source=args.input, output=args.output)
+            print(f"已转换 {len(frame)} 行：{args.output.resolve()}；原始文件保持不变。")
+            return 0
+        if args.command == "analyze-prepared":
+            manifest = json.loads((args.input/"provenance.json").read_text(encoding="utf-8"))
+            if not isinstance(manifest, dict) or not isinstance(manifest.get("analysis_config"), dict):
+                raise ValueError("转换清单缺少 analysis_config")
+            try:
+                config = AnalysisConfig(**manifest["analysis_config"])
+            except TypeError as exc:
+                raise ValueError("转换清单包含不支持的配置字段") from exc
+            result = analyze_csv(args.input/"prices.csv", args.output, config, title=args.title, source_provenance=manifest)
+        else:
+            kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}
+            result = analyze_csv(args.input, args.output, AnalysisConfig(**kwargs), title=args.title)
     except (ValueError, OSError) as exc:
         print(f"无法生成报告：{exc}", file=sys.stderr)
         return 2
