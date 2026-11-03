@@ -2,7 +2,7 @@
 
 **从市场价格与成交量生成金融典型事实的图文报告。**
 
-面向股票、外汇及其他金融时间序列，覆盖 Cont 的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
+面向股票、外汇及其他金融时间序列，覆盖 [Cont (2001)](https://doi.org/10.1080/713665670) 总结的 11 项 stylized facts。输入 CSV，即可得到独立 HTML 报告、统计表和可复核的计算结果，可用于真实市场研究及市场模拟器评估。
 
 - **逐资产、逐路径分析**：分别展示收益分布、波动聚集、自相关和多尺度变化。
 - **报告与数值一起输出**：图表配有根据计算结果生成的说明；HTML 离线可读，JSON、CSV 和 PNG 可继续用于研究。
@@ -85,4 +85,14 @@ result = analyze_csv(
 - [使用指南](docs/usage.md)：CSV 输入、命令行与报告阅读。
 - [数据指南](docs/data-guide.md)：股票、FRED、EBS 数据接入。
 - [统计方法](docs/methods.md)：估计量、时间单位与解释边界。
-- [参考文献](docs/references.md) · [参与开发](CONTRIBUTING.md)。
+- [参考文献](docs/references.md)：方法来源与数值计算参考。
+
+## 参考文献
+
+1. **Cont, R. (2001).** [Empirical properties of asset returns: stylized facts and statistical issues](https://doi.org/10.1080/713665670). *Quantitative Finance*, 1(2), 223–236. 本库 11 项典型事实的组织框架。
+2. **Ratliff-Crain, E., et al. (2025).** [Revisiting Cont’s stylized facts for modern stock markets](https://doi.org/10.1080/14697688.2025.2530637). *Quantitative Finance*, 25(9), 1343–1373. 多事实联合评估、杠杆效应与粗细尺度分析的参考；[开放预印本](https://arxiv.org/abs/2311.07738v2)。
+3. **Newey, W. K., & West, K. D. (1987).** [A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix](https://doi.org/10.2307/1913610). *Econometrica*. 时间相关指标的 HAC 协方差估计依据。
+4. **Lo, A. W. (1991).** [Long-Term Memory in Stock Market Prices](https://doi.org/10.2307/2938368). *Econometrica*. 调整短期依赖的修正 R/S 检验依据。
+5. **Jensen, M. H., Johansen, A., & Simonsen, I. (2003).** [Inverse statistics in economics: The gain–loss asymmetry](https://doi.org/10.1016/S0378-4371%2802%2901884-8). *Physica A*. 对称收益阈值与首达时间分析的参考；[开放预印本](https://arxiv.org/abs/cond-mat/0211039)。
+
+具体估计量和默认设置见[统计方法](docs/methods.md)，数据来源与署名见[数据说明](data/README.md)。

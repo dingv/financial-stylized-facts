@@ -3,7 +3,7 @@
 | 文献 | 对应分析 |
 | --- | --- |
 | [Cont (2001), Empirical properties of asset returns: stylized facts and statistical issues](https://doi.org/10.1080/713665670) | 11 项典型事实的研究框架 |
-| [Ratliff-Crain et al., Revisiting Cont’s Stylized Facts](https://arxiv.org/html/2311.07738v2) | 多事实联合评估、杠杆效应、粗细尺度方向 |
+| [Ratliff-Crain et al. (2025), Revisiting Cont’s stylized facts for modern stock markets](https://doi.org/10.1080/14697688.2025.2530637)；[开放预印本 v2](https://arxiv.org/abs/2311.07738v2) | 多事实联合评估、杠杆效应、粗细尺度方向 |
 | [Newey & West (1987)](https://doi.org/10.2307/1913610) | Bartlett HAC 协方差 |
 | [Lo (1991), Long-Term Memory in Stock Market Prices](https://doi.org/10.2307/2938368)；[Gould, Porter & Howison (2016), Appendix B.3](https://people.maths.ox.ac.uk/porterm/papers/long-memory-published.pdf) | 修正 R/S 与短期依赖检验 |
 | [Jensen, Johansen & Simonsen, Inverse Statistics in Economics](https://arxiv.org/abs/cond-mat/0211039) | 对称收益阈值的首达时间 |
