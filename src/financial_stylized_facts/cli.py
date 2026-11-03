@@ -30,6 +30,9 @@ def main(argv=None):
     analyze.add_argument("--burst-threshold", type=float, default=3.0, help="大幅波动阈值：偏离本路径均值的标准差倍数")
     analyze.add_argument("--volatility-max-lag", type=int, default=300, help="长范围绝对收益 ACF 的最大基础间隔数")
     analyze.add_argument("--stability-blocks", type=int, default=4, help="按时间顺序等观测槽分段，检查 ACF 是否稳定")
+    analyze.add_argument("--volume-kind", choices=["none", "interval"], default="none", help="interval 表示已按基础采样区间汇总的成交量")
+    analyze.add_argument("--volume-unit", help="成交量单位，例如 shares、contracts、USD；不能用成交笔数代替")
+    analyze.add_argument("--coarse-factor", type=int, default=30, help="粗波动区间包含的基础收益数，至少为 2")
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}
@@ -39,7 +42,7 @@ def main(argv=None):
         print(f"无法生成报告：{exc}", file=sys.stderr)
         return 2
     print(f"报告：{(args.output / 'index.html').resolve()}")
-    print(f"分别分析 {len(result['groups'])} 组资产/路径；数值已写入 results.json、summary.csv、acf.csv、scales.csv、leverage.csv 和 volatility_acf.csv。")
+    print(f"分别分析 {len(result['groups'])} 组资产/路径；数值已写入 results.json 和同目录各项 CSV。")
     return 0
 
 

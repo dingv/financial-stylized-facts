@@ -24,11 +24,22 @@ class AnalysisConfig:
     burst_threshold: float = 3.0
     volatility_max_lag: int = 300
     stability_blocks: int = 4
+    volume_kind: str = "none"
+    volume_unit: str | None = None
+    coarse_factor: int = 30
 
     def validate(self):
-        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks"]:
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
+        if not 2 <= self.coarse_factor <= 10000:
+            raise ValueError("coarse_factor 必须在 2–10000 之间")
+        if self.volume_kind not in {"none", "interval"}:
+            raise ValueError("volume_kind 仅支持 none 或 interval，不接受累计量或未汇总逐笔量")
+        if self.volume_kind == "interval" and (not self.volume_unit or not self.volume_unit.strip()):
+            raise ValueError("区间成交量必须声明 volume_unit，例如 shares、contracts、USD")
+        if self.volume_kind == "none" and self.volume_unit is not None:
+            raise ValueError("volume_unit 只能与 volume_kind=interval 一起使用")
         if not 1 <= self.volatility_max_lag <= 2000 or not 2 <= self.stability_blocks <= 8:
             raise ValueError("volatility_max_lag 必须在 1–2000；stability_blocks 必须在 2–8")
         factors = self.aggregation_factors
@@ -94,6 +105,15 @@ def read_prices(path: str | Path, config: AnalysisConfig) -> pd.DataFrame:
         raise ValueError("price 必须为数值；请先明确处理源数据中的缺失值") from exc
     if not np.isfinite(frame["price"]).all() or (frame["price"] <= 0).any():
         raise ValueError("price 必须全部有限且大于零，不自动删除异常行")
+    if ("volume" in frame) != (config.volume_kind == "interval"):
+        raise ValueError("含 volume 列时必须声明 volume_kind=interval 和 volume_unit；声明后也必须提供 volume 列")
+    if "volume" in frame:
+        try:
+            frame["volume"] = pd.to_numeric(frame["volume"].replace(r"^\s*$", np.nan, regex=True), errors="raise").astype(float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("volume 必须为非负数值或空白（缺失）") from exc
+        if np.isinf(frame["volume"]).any() or (frame["volume"] < 0).any():
+            raise ValueError("volume 必须为有限非负数，缺失请留空，不能用零代替")
     for column, default in [("asset_id", "series"), ("path_id", "observed")]:
         if column not in frame:
             frame[column] = default
@@ -120,6 +140,13 @@ def sample_path(frame: pd.DataFrame, config: AnalysisConfig):
         group = group.sort_values("timestamp", kind="stable")
         duplicate_count = int(group["timestamp"].duplicated().sum())
         duplicates += duplicate_count
+        if config.volume_kind == "interval":
+            if "volume" not in group:
+                raise ValueError("缺少已声明的区间 volume")
+            if duplicate_count:
+                raise ValueError("区间 volume 不允许重复 timestamp；请先明确汇总价格和成交量")
+            if config.sampling == "grid" and not group["timestamp"].eq(group["timestamp"].dt.floor(step)).all():
+                raise ValueError("区间 volume 必须预先按 frequency 对齐到 UTC 网格端点，当前不自动重采样成交量")
         if config.sampling == "observations":
             if duplicate_count:
                 raise ValueError("observations 模式不允许同一 session 出现重复 timestamp")
@@ -140,6 +167,9 @@ def sample_path(frame: pd.DataFrame, config: AnalysisConfig):
             sampled = pd.merge_asof(grid, source, left_on="timestamp", right_on="source_time", direction="backward", tolerance=tolerance)
             sampled["age_seconds"] = (sampled["timestamp"] - sampled["source_time"]).dt.total_seconds()
             sampled = sampled.drop(columns="source_time")
+        if config.volume_kind == "interval":
+            # Volume belongs to (t-step, t], never carry it along with a stale price.
+            sampled = sampled.merge(group[["timestamp", "volume"]], on="timestamp", how="left", validate="one_to_one")
         total += len(sampled)
         if total > config.max_grid_points:
             raise ValueError("输入观测数超过 max_grid_points")
@@ -148,6 +178,8 @@ def sample_path(frame: pd.DataFrame, config: AnalysisConfig):
         sampled["log_return"] = np.log(sampled["price"]).diff()
         chunks.append(sampled)
     columns = ["timestamp", "price", "age_seconds", "session_id", "carried", "log_return"]
+    if config.volume_kind == "interval":
+        columns.append("volume")
     sampled = pd.concat(chunks, ignore_index=True)[columns] if chunks else pd.DataFrame(columns=columns)
     meta = {
         "input_rows": len(frame), "sampled_points": len(sampled), "sessions": len(chunks),

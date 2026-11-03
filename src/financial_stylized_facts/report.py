@@ -22,6 +22,7 @@ from .data import AnalysisConfig, read_prices, sample_path
 from .statistics import distribution, three_acfs
 from .diagnostics import analyze_diagnostics
 from .dependence import dependence_diagnostics
+from .activity import activity_diagnostics
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -123,6 +124,60 @@ def _plots(sampled, metrics, acfs, config, directory, group_id):
 
 def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
+
+
+def _activity_plots(diagnostics, config, directory, group_id):
+    paths, embedded = {}, {}
+    volume = diagnostics["volume_volatility"]
+    if volume["status"] != "not_applicable":
+        fig = _figure(height=3.5)
+        ax = fig.subplots()
+        bins = volume["bins"]
+        if bins:
+            ax.plot([b["mean_volume"] for b in bins], [b["mean_absolute_return"] for b in bins],
+                    "o-", color="#2563a6")
+            for b in bins:
+                ax.annotate(f"n={b['n']}", (b["mean_volume"], b["mean_absolute_return"]),
+                            xytext=(0, 7), textcoords="offset points", ha="center", fontsize=8)
+            ax.margins(y=.25)
+        else:
+            ax.text(.5, .5, "Insufficient paired intervals", transform=ax.transAxes, ha="center")
+        # Units are displayed in HTML, so arbitrary Unicode units don't break fonts.
+        ax.set(xlabel="Mean interval volume (declared unit)", ylabel="Mean absolute return")
+        _style(ax)
+        paths["volume"] = f"figures/{group_id}-volume.png"
+        embedded["volume"] = _save(fig, directory/paths["volume"])
+
+    fig = _figure(height=3.6)
+    axes = fig.subplots(1, 2)
+    estimate = diagnostics["timescale_asymmetry"]
+    rows = estimate["differences"]
+    if config.sampling == "grid":
+        seconds = pd.Timedelta(config.frequency).total_seconds()*config.coarse_factor
+        divisor, unit = (3600, "hours") if seconds >= 3600 else (60, "min") if seconds >= 60 else (1, "seconds")
+        factor, xlabel = seconds/divisor, f"Separation ({unit})"
+    else:
+        factor, xlabel = config.coarse_factor, "Separation (observations)"
+    x = [r["lag"]*factor for r in rows]
+    for key, label, color in [("coarse_leads_fine", "Coarse earlier / fine later", "#2563a6"),
+                               ("fine_leads_coarse", "Fine earlier / coarse later", "#c77d55")]:
+        axes[0].plot(x, [np.nan if r[key] is None else r[key] for r in rows], color=color, label=label, linewidth=1.4)
+    axes[1].plot(x, [np.nan if r["difference"] is None else r["difference"] for r in rows], color="#598778", linewidth=1.4)
+    if estimate["status"] == "computed":
+        axes[0].legend(frameon=False, fontsize=8)
+    for ax in axes:
+        ax.axhline(0, color="#9aa3ad", linewidth=.8)
+        ax.set_xlabel(xlabel)
+        if estimate["status"] != "computed":
+            ax.text(.5, .5, "Insufficient pairs / zero variance", transform=ax.transAxes, ha="center", fontsize=8)
+        _style(ax)
+    axes[0].set_ylabel("Correlation")
+    axes[1].set_ylabel("Difference (orange minus blue)")
+    axes[0].set_title("Two time directions")
+    axes[1].set_title("Time-scale asymmetry")
+    paths["timescale"] = f"figures/{group_id}-timescale.png"
+    embedded["timescale"] = _save(fig, directory/paths["timescale"])
+    return paths, embedded
 
 
 def _dependence_plots(diagnostics, config, directory, group_id):
@@ -250,16 +305,17 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         acfs = three_acfs(sampled, config.max_lag, config.min_pairs)
         diagnostics, rms = analyze_diagnostics(sampled, config)
         diagnostics.update(dependence_diagnostics(sampled, config))
+        diagnostics.update(activity_diagnostics(sampled, config))
         groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.3", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.4", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i in [1, 2, 3, 4, 5, 6, 8, 9] else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "descriptive_only" if i != 7 else "not_implemented"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -271,6 +327,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     result["provenance"]["source_sha256"] = digest.hexdigest()
     views, summary_rows, acf_rows, scale_rows = [], [], [], []
     leverage_rows, persistence_rows = [], []
+    volume_rows, timescale_rows = [], []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
@@ -278,6 +335,9 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         paths.update(new_paths)
         embedded.update(new_images)
         new_paths, new_images = _dependence_plots(diagnostics, config, output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
+        new_paths, new_images = _activity_plots(diagnostics, config, output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)
         item = {"asset_id": asset, "path_id": path, "quality": quality, "distribution": metrics, "acf": acfs, "density": density, "figures": paths, **diagnostics}
@@ -295,6 +355,16 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         summary_rows.append({"asset_id": asset, "path_id": path, **quality, **{k: metrics[k] for k in ["mean", "std", "zero_fraction", "excess_kurtosis", "status", "reason"]}})
         summary_rows[-1].update(skewness=diagnostics["asymmetry"]["skewness"],
                                 exceedance_fraction=diagnostics["intermittency"]["exceedance_fraction"])
+        volume = diagnostics["volume_volatility"]
+        for proxy, estimate in volume["correlations"].items():
+            volume_rows.append({"asset_id": asset, "path_id": path, "proxy": proxy, "unit": volume["unit"], **estimate})
+        if not volume["correlations"]:
+            volume_rows.append({"asset_id": asset, "path_id": path, "status": volume["status"]})
+        asym = diagnostics["timescale_asymmetry"]
+        for row in asym["differences"]:
+            timescale_rows.append({"asset_id": asset, "path_id": path, "coarse_factor": asym["factor"],
+                                   "separation_seconds": row["lag"]*asym["factor"]*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
+                                   "observation_unit": config.observation_unit, **row})
         for row in diagnostics["aggregation"]["scales"]:
             scale_rows.append({"asset_id": asset, "path_id": path, **row,
                                "interval_seconds": pd.Timedelta(config.frequency).total_seconds()*row["factor"] if config.sampling == "grid" else None,
@@ -320,6 +390,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
     pd.DataFrame(scale_rows).to_csv(output_dir / "scales.csv", index=False)
+    pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)
+    pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
     pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
     pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)

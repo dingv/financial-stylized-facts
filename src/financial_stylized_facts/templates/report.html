@@ -18,7 +18,7 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版提供八项事实的描述性诊断，新增收益与后续波动的关系、较长范围的波动相关性。正式统计检验仍待补齐。</p></header>
+<p class="muted">本版提供十项事实的描述性诊断；缺少成交量时跳过对应分析。条件厚尾与正式统计检验仍待补齐。</p></header>
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
@@ -62,6 +62,23 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <p>如果只有全程相关明显，分段结果却不同，就需要检查波动状态变化等因素。即使较长滞后仍有正相关，也不能仅凭这张图认定存在长记忆或幂律衰减。</p>
 <details><summary>查看分段范围与样本数</summary><div class="table-wrap"><table><tr><th>段</th><th>开始 / 结束（UTC）</th><th>有效收益数</th><th>状态</th></tr>{% for b in g.volatility_persistence.blocks %}<tr><td>{{ b.block }}</td><td>{{ b.start or '无观测' }}<br>{{ b.end or '无观测' }}</td><td>{{ b.acf.n }}</td><td>{{ '已计算' if b.acf.status == 'computed' else b.acf.reason }}</td></tr>{% endfor %}</table></div>
 <p class="muted">按时间排序后的观测槽数等分，保留缺口；交易时段边界与分段边界不配对。各段独立去均值，较短分段和缺口会改变配对覆盖率。图中不删除负相关、不筛选正点拟合直线。详细配对数见 volatility_acf.csv。</p></details></section>
+<section class="card"><h2>9. 交易更活跃时，价格变化更大吗？</h2>
+{% if g.volume_volatility.status == 'not_applicable' %}<p>本数据没有提供已声明口径的区间成交量，因此跳过这一项。价格条数或报价次数不能代替成交量。</p>
+{% else %}<p>把同一条路径的区间按成交量从低到高分组。每个点表示一组区间的平均成交量与平均绝对收益；曲线向上，说明量较大的区间往往也有更大的价格变化。</p>
+<img src="{{ g.images.volume }}" alt="{{ g.asset_id }} {{ g.path_id }} 的成交量分组与绝对收益">
+<p>成交量单位为 <strong>{{ g.volume_volatility.unit }}</strong>，与收益成功配对的区间共 <strong>{{ g.volume_volatility.n }}</strong> 个。
+{% if g.volume_volatility.status == 'computed' %}成交量与绝对收益的 Pearson 相关为 <strong>{{ g.volume_volatility.correlations.absolute.pearson|number }}</strong>，Spearman 秩相关为 <strong>{{ g.volume_volatility.correlations.absolute.spearman|number }}</strong>。{% else %}{{ g.volume_volatility.reason }}。{% endif %}</p>
+<details><summary>查看分组与平方收益对照</summary><table><tr><th>组</th><th>成交量范围</th><th>区间数</th><th>平均绝对收益</th></tr>{% for b in g.volume_volatility.bins %}<tr><td>{{ b.bin }}</td><td>{{ b.volume_min|number }} — {{ b.volume_max|number }}</td><td>{{ b.n }}</td><td>{{ b.mean_absolute_return|number }}</td></tr>{% endfor %}</table>
+<p>平方收益对照：Pearson {{ g.volume_volatility.correlations.squared.pearson|number }}；Spearman {{ g.volume_volatility.correlations.squared.spearman|number }}。最多五组，相同成交量不拆组；相关系数直接按区间观测计算，不是对这几个分组均值计算。</p></details>
+<p class="muted">缺失量不填零，不沿用上一期成交量。此处尚未扣除日内规律，因此交易活跃时段与波动时段重合，也可能贡献相关性；不解释为成交量导致波动。</p>{% endif %}</section>
+<section class="card"><h2>10. 大尺度与小尺度波动，谁的变化更早？</h2>
+<p>每 {{ config.coarse_factor }} 个基础收益合成一个区间：大尺度波动看这一整段的净价格变化，小尺度波动看段内每一步变化的平均大小。左图比较两种先后顺序，右图显示它们的差。</p>
+<img src="{{ g.images.timescale }}" alt="{{ g.asset_id }} {{ g.path_id }} 的粗细尺度波动时间方向对照">
+<p>蓝线是“大尺度在前、小尺度在后”，橙线是相反顺序。右图用橙线减蓝线：负值表示前一种关系较强，正值表示后一种较强。接近零表示这两种顺序的相关强度相近。</p>
+{% if g.timescale_asymmetry.status != 'computed' %}<p>{{ g.timescale_asymmetry.reason }}。</p>{% endif %}
+<p class="muted">区间彼此不重叠，横轴表示两个区间之间的时间距离，不是基础收益的间隔。这里比较的是相关性，不是因果或预测能力检验；它也不同于价格变化的幂律缩放图。</p>
+<details><summary>查看粗细尺度定义与数据覆盖</summary><p>大尺度 C = |区间内收益之和|；小尺度 F = 区间内绝对收益的平均值。A(k) = corr(Fₜ, Cₜ₊ₖ)，差值 D(k) = A(k) − A(−k)。每个滞后按有效配对单独去均值，使用 Pearson 相关。每个 session 从首个价格开始分块；块内缺失则整块无效，不跨 session 配对。</p>
+<p>完整长度区间共 {{ g.timescale_asymmetry.quality.total_blocks }} 个，其中因缺失无效 {{ g.timescale_asymmetry.quality.invalid_blocks }} 个；尾部不够一块而舍弃 {{ g.timescale_asymmetry.quality.discarded_return_slots }} 个收益槽。正反方向的配对数及差值见 timescale.csv。不同尺度组合可能给出不同结果，不挑选差异最大的尺度作为结论。</p></details></section>
 <details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
 <tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
 <tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>

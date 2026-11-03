@@ -4,7 +4,7 @@
 
 目标是覆盖 Cont 总结的 11 项事实：输入价格、收益率及可选成交量数据，生成便于阅读的图文报告，以及可复核的统计结果。用于比较真实市场与模拟市场，不局限于外汇。
 
-**当前版本：八项事实已有描述性诊断。** 支持 CSV 价格输入、时间采样、收益分布、自相关、涨跌不对称、多尺度分布变化、间歇性、收益与后续波动关系，以及较长范围的波动相关对照，生成独立 HTML 报告与统计数据。条件厚尾、量价关系、时间尺度不对称及正式统计检验仍待实现；较长范围的 ACF 不等于已经完成长记忆检验。
+**当前版本：十项事实已有描述性诊断。** 支持 CSV 价格输入、时间采样、收益分布、自相关、涨跌不对称、多尺度分布变化、间歇性、收益与后续波动关系，较长范围的波动相关对照、区间成交量与波动关系，以及粗细尺度波动的时间方向对照，生成独立 HTML 报告与统计数据。条件厚尾及正式统计检验仍待实现；较长范围的 ACF 不等于已经完成长记忆检验。
 
 ## 先看一份报告
 
@@ -21,6 +21,18 @@ fsf analyze "$demo_dir/prices.csv" --output "$demo_dir/report" --frequency 1min 
 打开输出目录里的 `index.html`，即可切换查看五种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH、有明显偏度的独立收益，以及负冲击后增大波动的示意过程。最后一种只用于验证时间方向，不是拟合得到的真实市场模型。HTML 已嵌入图片，可以单独复制到本地打开。数值另行导出 JSON 与 CSV。
 
 自己的 CSV 至少包含 `timestamp,price`；多资产、多路径使用 `asset_id,path_id`。详见[使用指南](docs/usage.md)。原始 EBS/FRED 文件尚未接入专用适配器，不能直接假定其字段符合本接口。
+
+量价与时间方向另有一个刻意构造的校验示例：
+
+```bash
+activity_dir=$(mktemp -d /tmp/fsf-activity-XXXXXX)
+python examples/activity_prices.py "$activity_dir/prices.csv"
+fsf analyze "$activity_dir/prices.csv" --output "$activity_dir/report" \
+  --frequency 1min --coarse-factor 2 --volume-kind interval \
+  --volume-unit synthetic-units --price-type synthetic
+```
+
+它展示同一构造过程及其时间反转：粗细波动差值应反号，同期量价关系应保持。成交量是人为生成的，只用于检查计算和阅读图形，不能当作真实市场证据。
 
 ## 计划提供什么
 

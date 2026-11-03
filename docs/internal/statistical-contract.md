@@ -1,6 +1,6 @@
 # 统计实现约定
 
-本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF 与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
@@ -61,12 +61,10 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 ## 其他模块的候选算法（均尚未实现）
 
 - 条件厚尾：候选为常数均值 Gaussian QMLE GARCH(1,1)，e_t=(r_t-mu)/sigma_t。按 [arch 官方定义](https://arch.readthedocs.io/en/latest/univariate/introduction.html) 拟合；检查优化收敛、参数边界、尺度处理与残余波动相关，再比较残差分布。全样本拟合属于描述性拟合，不声称样本外预测；如做样本外评估必须分训练/验证。该可选模块依赖 arch，尚未安装或实现。
-- 量价相关：同区间量与 |r|、r² 的 Pearson/Spearman 相关，附日内时段对照；无 volume 就 not_applicable，不能用常数或成交次数偷偷代替。
-- 时间尺度不对称：在同一粗网格上，用 C_t=|sum_{i=1}^{m}r_{t,i}| 和 F_t=sum_{i=1}^{m}|r_{t,i}| 表示粗、细波动，比较 corr(C_t,F_{t+k}) 与 corr(F_t,C_{t+k})，k>0。前后窗口互不重叠，要求 m>1 和足够粗区间；输出差值及不确定性。此为本库候选操作定义，正式实现前须核对原始时间尺度文献，不能仅据该相关差异声称因果或预测改善。
 
 ## 结果与验证
 
-当前结果 schema_version=0.3。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的第 1–6、8、9 项标 descriptive_only，第 7、10、11 项标 not_implemented；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.4。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的第 1–6、8–11 项标 descriptive_only，第 7 项标 not_implemented；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
@@ -75,3 +73,20 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 ## 参考范围
 
 [Cont (2001), DOI](https://doi.org/10.1080/713665670) 提供事实覆盖框架；[Ratliff-Crain et al. v2](https://arxiv.org/html/2311.07738v2) 用作多项事实联合评估的参考。以上公式、默认口径与报告设计是项目约定，尚需逐模块验证，不代表上述文章均采用完全相同的计算方法。
+# 区间成交量与粗细尺度方向：0.4 实现约定
+
+新增模块参考 [Ratliff-Crain 等，Revisiting Cont’s Stylized Facts，v2 第 4.7–4.8 节及附录 A.4](https://arxiv.org/html/2311.07738v2)，并采用以下显式操作定义。它们是描述诊断，不是统一的显著性检验。Cont 清单提供研究问题，不规定本库的分组数或默认尺度。
+
+## 成交量
+
+`volume_kind=interval`，必须声明单位。每行的量对应截至该行时间戳的基础收益区间；grid 输入预先对齐并汇总到 `frequency`，不转换累计量或自动聚合逐笔数据。observations 的量对应结束于该观测的区间。空白量为缺失，零是有效观测；负值、无穷、重复时间戳和未声明口径拒绝。不同资产的单位需统一声明或分别运行。缺失量不沿用；价格沿用策略与量分开处理。
+
+对同一路径有限的 `(volume_t, |r_t|)`、`(volume_t, r_t²)` 配对分别计算 Pearson 和 Spearman（平均秩处理并列）。不输出 SciPy 的 IID p 值；时间依赖未处理。量及收益先缩放再计算，避免大金额平方溢出。低于 `min_pairs` 或方差近零，系数为 null 并保留原因。图使用量的 0、20、40、60、80、100% 分位边界，去掉重复边界，相同量不拆组；最多五组，可能不等样本数。不把分组均值的相关冒充原始区间相关。日内季节调整尚未实现。
+
+## 时间尺度不对称
+
+每个 session 去掉首个结构性缺失收益后，按 `m=coarse_factor>=2` 分成不重叠整块。第 t 块：`C_t = |Σ r_i|`，`F_t = mean(|r_i|)`。含缺口的块无效，但保留其位置；尾部不足 m 的收益舍弃。时间方向定义沿用所参考论文：`A(k)=corr(F_t,C_(t+k))`，`D(k)=A(k)-A(-k)`。正 k 下，A(k) 是细在前，A(-k) 是粗在前；所以 D<0 表示粗在前的相关更强。常量缩放 F 不影响 Pearson 系数。
+
+每个 k 按同 session 的有效配对独立去均值计算 Pearson；不跨 session，不用同期 k=0 推断不对称。差值任一方向不可算则为 null。横轴一步为 m 个基础间隔；observations 模式只能标为 m 个观测，不能假称固定分钟。默认 m=30，最大 lag 沿用 `max_lag`，但以完整块数截断。该默认是可配置选择，不是从数据挑选最大不对称。
+
+配对、差值及两向样本数全部导出；没有置信区间、因果推断或样本外预测检验。反转整块对齐的时间序列应使 D 反号；将 FX 收益整体反号应不改变 C、F、D。测试包含这两个性质、手算分块、含缺口的直接 Pearson 对照，以及已知粗在前的构造过程。
