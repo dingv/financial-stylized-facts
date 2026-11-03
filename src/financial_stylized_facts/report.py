@@ -24,6 +24,7 @@ from .diagnostics import analyze_diagnostics
 from .dependence import dependence_diagnostics
 from .activity import activity_diagnostics
 from .conditional import conditional_diagnostics
+from .uncertainty import uncertainty_diagnostics
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -360,11 +361,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         diagnostics.update(activity_diagnostics(sampled, config))
         conditional, residual_arrays = conditional_diagnostics(sampled, config)
         diagnostics["conditional_tails"] = conditional
+        diagnostics["uncertainty"] = uncertainty_diagnostics(sampled, config, seed_key=str(asset)+"\0"+str(path))
+        metrics["uncertainty"] = {"status": diagnostics["uncertainty"]["status"], "reference": "group.uncertainty", "reason": diagnostics["uncertainty"]["reason"]}
         groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays))
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.5", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.6", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
@@ -383,6 +386,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     leverage_rows, persistence_rows = [], []
     volume_rows, timescale_rows = [], []
     conditional_rows = []
+    uncertainty_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, config, output_dir, group_id)
@@ -424,6 +428,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
                                    "separation_seconds": row["lag"]*asym["factor"]*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
                                    "observation_unit": config.observation_unit, **row})
         conditional = diagnostics["conditional_tails"]
+        for block in diagnostics["uncertainty"]["blocks"]:
+            for row in block["intervals"]:
+                uncertainty_rows.append({"asset_id": asset, "path_id": path, "block_length": block["block_length"],
+                                         "confidence_level": diagnostics["uncertainty"]["confidence_level"],
+                                         "seed": block["seed"], **row})
         for row in conditional["segments"]:
             conditional_rows.append({"asset_id": asset, "path_id": path, "segment": row["segment"], "session_id": row["session_id"],
                                      "start": row["start"], "end": row["end"], "n": row["n"], "status": row["status"], "reason": row.get("reason"),
@@ -459,6 +468,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     pd.DataFrame(volume_rows, columns=["asset_id", "path_id", "proxy", "unit", "pearson", "spearman", "pair_count", "status", "rank_status"]).to_csv(output_dir/"volume.csv", index=False)
     pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
     pd.DataFrame(conditional_rows, columns=["asset_id", "path_id", "segment", "session_id", "start", "end", "n", "status", "reason", "n_evaluated", "optimizer_status", "raw_excess_kurtosis", "residual_excess_kurtosis", "mu", "omega", "alpha", "beta", "persistence", "flags"]).to_csv(output_dir/"conditional.csv", index=False)
+    pd.DataFrame(uncertainty_rows, columns=["asset_id", "path_id", "block_length", "metric", "estimate", "lower", "upper", "bootstrap_se", "confidence_level", "valid_reps", "seed", "status", "reason"]).to_csv(output_dir/"uncertainty.csv", index=False)
     pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
     pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)

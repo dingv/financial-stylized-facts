@@ -1,6 +1,6 @@
 # 统计实现约定
 
-本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向、条件厚尾与报告导出。其他段落明确标为计划；置信区间与正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
+本文件记录本库的算法与数据约定，不代表对任何论文实现细节的还原。当前实现：价格 CSV 输入、采样、对数收益、峰度、KDE、三类 ACF、涨跌不对称、多尺度聚合、间歇性、杠杆效应、长范围波动 ACF、区间量价关系、粗细尺度方向、条件厚尾与报告导出。其他段落明确标为计划；部分边际与量价统计已有近似区间；完整正式显著性检验尚未实现。已实现部分用手算、性质测试和成熟函数交叉校验。
 
 ## 输入与采样
 
@@ -60,7 +60,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 结果与验证
 
-当前结果 schema_version=0.5。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.6。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 
@@ -98,3 +98,17 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 拟合后舍弃前 garch_burn=50 个观测，并在同一截取范围对原始收益和 z=(r-mu)/sigma 分别计算峰度与尾部计数。分布图的原始收益再次按截取样本中心化与标准化，残差使用原模型 z；无正态密度参照，无跨段合并。原始平方 ACF 使用 ((r-mean(r))/std(r))²，残差平方 ACF 使用 z²；单段 fixed-denominator 定义与已有 ACF 一致。两者的残余相关用于检查过滤效果，不输出未经校准的拟合后 IID p 值。
 
 逐段参数、状态、前后峰度在 conditional.csv；可用段的 timestamp、r、mu、sigma、z 在 conditional/，与显示区间相同。测试核对残差恒等式、方差递推、单位变换、Gaussian/t 创新模拟的过滤行为，以及缺口、短段、资源限制、优化失败和依赖缺失。100% 拟合成功不等于模型充分；持续性接近 1 时 50 个初始化缓冲观测可能不足。
+
+## 区块重采样区间：0.6 实现约定
+
+采用 [Circular Block Bootstrap](https://bashtage.github.io/arch/bootstrap/timeseries-bootstraps.html) 和[百分位区间](https://bashtage.github.io/arch/bootstrap/generated/generated/arch.bootstrap.CircularBlockBootstrap.conf_int.html)。实现用 NumPy 生成索引，单连续段的索引及 95% 区间与 arch 的相同种子结果逐项核对。默认 399 次、块长 10/20/40 个基础收益，三个方案都保存，不筛选较窄或更显著的区间。
+
+每条资产/路径内，session 与收益缺口划分连续段。对每段独立均匀抽取固定长度块，块在该段内循环，拼成与该段等长的重采样序列，末块裁至原长度。循环仅是 bootstrap 人造边界，不声称原时间序列首尾相邻；不跨真实缺口或资产。各段长度保持固定，所有重采样观测用于同一路径的边际统计，不生成拼接后的 ACF。量与收益共同按相同索引重采样，量的缺失跟随原观测，不能通过独立抽量破坏同期关系。
+
+覆盖均值、ddof=0 标准差、修正偏度、修正超额峰度、每次重新标准化后 |z|>3 的经验概率、零收益比例，以及量与 |r| 的 Pearson/Spearman、量与 r² 的 Pearson。估计公式与原诊断保持一致。使用 2.5%/97.5% 分位数（linear 插值），并输出重复估计的样本标准差。至少 95% 重复可计算才输出区间；重采样结果在浮点精度下没有变化则标记 degenerate，不把稀有事件零计数解释为概率上界为零。
+
+全路径不足 200 条、任一连续段不足两个块或总观测不足二十块时对应方案不可用；短段不会静默删除。每路径 `n × reps × 块长方案数` 默认上限 2000 万，超限整个模块标记 resource_limit，不悄悄下采样或降低重复数。使用 seed、资产/路径标识、块长的 SHA256 派生独立随机流，增加其他路径或块长不会改变既有方案。参数、真实使用的种子和有效重复次数均导出。
+
+这是按段分层、条件于已观测段数/长度的**单统计量近似区间**，不是从总体随机抽取未来交易日的区间。需要段内近似平稳、弱依赖及统计量所需矩条件；峰度的区间尤其依赖高阶矩。长记忆、强远尾、结构变化、信息性缺失或跨段关联可能使覆盖率失效。块长对照揭示部分敏感性，但不证明假设成立。不存在统一的 11 项“通过”判定。
+
+没有施加零相关、正态性或其他零假设；不提供 p 值，不把“区间不含零”解释为未经校准的全报告显著性。多个资产、多个指标和块长的区间不是同时置信区间，没有多重比较校正。ACF/杠杆/尺度差值、GARCH 参数和拟合后残差暂不提供该区间，不用固定残差重采样忽略模型估计误差。相关的图和元数据继续明确无不确定性。

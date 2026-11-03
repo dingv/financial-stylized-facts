@@ -12,7 +12,7 @@ def distribution(values):
               "excess_kurtosis": None, "excess_kurtosis_uncorrected": None,
               "pearson_kurtosis": None, "status": "insufficient_data", "reason": "没有有效收益",
               "estimator": "scipy_fisher_bias_false", "tail_counts": {},
-              "uncertainty": {"status": "not_implemented", "reason": "首版为描述诊断，尚未估计置信区间"}}
+              "uncertainty": {"status": "not_computed", "reason": "此函数只计算点估计；报告层可另行计算区块重采样近似区间"}}
     if not len(x):
         return result
     scale = float(np.max(np.abs(x))) or 1.0

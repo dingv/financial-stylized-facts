@@ -18,7 +18,7 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 </style></head><body><main>
 <header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
 <p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版提供十一项事实的描述性诊断；缺少成交量、模型依赖或有效样本时，会明确说明。正式统计检验仍待补齐。</p></header>
+<p class="muted">本版提供十一项事实的描述性诊断，并为部分分布与量价统计量提供区块重采样近似区间。缺少数据或依赖时会明确说明；完整的正式统计检验仍待补齐。</p></header>
 <div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
 <span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ config.frequency }}{% else %}每个观测代表 {{ config.observation_unit }}{% endif %} · 非重叠对数收益</span></div>
@@ -33,10 +33,14 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <section class="card"><h2>2. 收益主要集中在哪里？</h2><p>这条曲线描述本路径收益分布，没有混入其他路径，也没有平均不同路径的曲线。</p>
 <img src="{{ g.images.density }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益概率密度图">
 {% if g.distribution.excess_kurtosis is not none %}<p>修正超额峰度为 <strong>{{ g.distribution.excess_kurtosis|number }}</strong>，高斯分布的基准为 0。正值是厚尾的线索，但不能单凭这一数值或钟形外观，判断极端变化是否稳定出现。</p>{% else %}<p>{{ g.distribution.reason }}</p>{% endif %}
-{% if g.density.status != 'computed' %}<p class="muted">未生成平滑密度：{{ g.density.reason }}</p>{% else %}<p class="muted">使用全体有效收益，Scott 带宽 KDE；平滑会影响视觉形状，峰度直接从样本计算。</p>{% endif %}</section>
+{% if g.density.status != 'computed' %}<p class="muted">未生成平滑密度：{{ g.density.reason }}</p>{% else %}<p class="muted">使用全体有效收益，Scott 带宽 KDE；平滑会影响视觉形状，峰度直接从样本计算。</p>{% endif %}
+{% if g.uncertainty.status in ['computed', 'partially_computed'] %}<p>下面的近似区间用于观察估计有多稳定。不同块长的结果都保留；区间变化很大时，结论可能依赖对时间相关性的处理。</p>
+<table><tr><th>块长（基础观测数）</th><th>超额峰度的近似 95% 区间</th></tr>{% for b in g.uncertainty.blocks %}<tr><td>{{ b.block_length }}</td><td>{% if b.status == 'computed' %}{% for m in b.intervals %}{% if m.metric == 'excess_kurtosis' %}{% if m.status == 'computed' %}[{{ m.lower|number }}, {{ m.upper|number }}]{% else %}{{ m.reason }}{% endif %}{% endif %}{% endfor %}{% else %}{{ b.reason }}{% endif %}</td></tr>{% endfor %}</table>
+<p class="muted">这些是单项的近似区间，不是多个指标同时成立的保证，也不是“厚尾通过”的判定。重采样依赖段内近似平稳、弱依赖和足够高阶矩；强远尾、长记忆或状态变化可能使峰度区间不可靠。</p>
+{% else %}<p class="muted">本次未提供重采样区间：{{ g.uncertainty.reason }}。</p>{% endif %}</section>
 <section class="card"><h2>3. 涨跌方向与波动大小，会持续吗？</h2><p>左图看收益的线性相关；中、右图分别看绝对收益和平方收益，用于观察波动大小是否持续。三图纵轴相同，便于比较相关强弱；横轴表示间隔，lag 0 没有画出。</p>
 <img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益、绝对收益和平方收益自相关">
-<p class="muted">只比较同一交易时段内的观测，保留缺口占用的时间。少于 {{ config.min_pairs }} 对观测的位置留空。本版没有置信区间，因此不自动把正相关称为显著聚集或长记忆。</p>
+<p class="muted">只比较同一交易时段内的观测，保留缺口占用的时间。少于 {{ config.min_pairs }} 对观测的位置留空。这些 ACF 尚未提供置信区间，因此不自动把正相关称为显著聚集或长记忆。</p>
 {% for name, a in g.acf.items() %}{% if a.status != 'computed' %}<p class="muted">{{ name }}：{{ a.reason }}</p>{% endif %}{% endfor %}</section>
 <section class="card"><h2>4. 大涨和大跌一样常见吗？</h2><p>橙色柱是均值左侧的大幅变化，蓝色柱是右侧。两边采用相同的标准差距离，并以本路径全部有效收益为分母。</p>
 <img src="{{ g.images.asymmetry }}" alt="{{ g.asset_id }} {{ g.path_id }} 的左右尾概率比较">
@@ -94,13 +98,18 @@ code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px
 <p>缺失与 session 边界断开拟合；默认每段至少 {{ config.garch_min_points }} 条收益，每条路径最多尝试 {{ config.garch_max_segments }} 段、合计 {{ config.garch_max_points }} 条，按时间顺序处理，超限段不截断。拟合后舍弃每段前 {{ config.garch_burn }} 条，再对相同范围作前后比较。</p>
 <p>常数均值、Gaussian 准似然 GARCH(1,1)，arch 版本 {{ g.conditional_tails.arch_version or '不可用' }}。先对输入做显式中心化与缩放以改善优化，导出参数恢复到原收益单位。密度图只将原始收益再标准化以便比较；残差使用模型输出。优化未收敛时不生成残差结论。拟合参数、边界提示与配对数见 results.json；可用段的逐点残差在 conditional/。</p></details>
 <p class="muted">这是全段样本内诊断，不是样本外预测，也不证明已消除所有波动结构。原始收益与残差的峰度都只是描述统计，没有因为拟合成功就自动判定“条件厚尾成立”。</p></section>
+<details><summary>查看全部重采样区间与适用限制</summary><p>每个 session 内连续有效收益段独立做循环区块重采样，固定各段样本数；块只在本段内循环，不跨真实缺口。每种块长重复 {{ config.bootstrap_reps }} 次，使用百分位法。它保留部分短期依赖，但不估计未来市场状态变化的风险。</p>
+{% set labels = {'mean':'平均收益','std':'收益标准差','skewness':'修正偏度','excess_kurtosis':'修正超额峰度','tail_probability_3sigma':'超过 3 个标准差的比例','zero_fraction':'零收益比例','volume_abs_pearson':'成交量与绝对收益 Pearson','volume_abs_spearman':'成交量与绝对收益 Spearman','volume_squared_pearson':'成交量与平方收益 Pearson'} %}
+{% for b in g.uncertainty.blocks %}<h3>块长 {{ b.block_length }}</h3>{% if b.status != 'computed' %}<p>{{ b.reason }}</p>{% else %}<div class="table-wrap"><table><tr><th>统计量</th><th>估计值</th><th>近似 95% 区间</th></tr>{% for m in b.intervals %}<tr><td>{{ labels[m.metric] }}</td><td>{{ m.estimate|number }}</td><td>{% if m.status == 'computed' %}[{{ m.lower|number }}, {{ m.upper|number }}]{% else %}{{ m.reason }}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}{% endfor %}
+<p>单项区间没有做多重比较校正，不用“区间不含零”的数量给市场打分。零概率在所有重采样中保持零时，标记区间退化，不把未观察到事件理解为不可能发生。缺口或短段不足以支撑块长时直接说明；没有删除短段、压缩时间或拼接其他路径凑结果。详细数值见 uncertainty.csv。</p>
+<p class="muted">ACF、杠杆效应、粗细尺度差值、GARCH 参数和拟合后残差的不确定性尚未包含，不能把此处区间套到这些图上。不同资产的区间也不是联合置信区间。</p></details>
 <details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
 <tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
 <tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>
 {% for threshold, tail in g.distribution.tail_counts.items() %}<tr><td>超过 {{ threshold }} 个本路径标准差</td><td>{{ tail.count }} 次 / {{ g.distribution.n }} 条收益</td></tr>{% endfor %}
 </table></div><p class="muted">ACF 使用同一路径全体有效观测的均值和固定平方偏差和，保留原网格与 session 边界。完整单段时与常见 adjusted=False 定义一致；有缺口时另报告每个 lag 的配对数。精确数值在 acf.csv 和 results.json 中。</p></details>
 </article>{% endfor %}
-<details><summary>11 项事实的实现范围</summary><table><tr><th>事实</th><th>当前状态</th></tr>{% for item in result.coverage %}<tr><td>{{ item.fact_id }}. {{ item.name }}</td><td>{% if item.status == 'descriptive_only' %}已提供描述诊断，尚无正式检验{% else %}尚未实现{% endif %}</td></tr>{% endfor %}</table></details>
+<details><summary>11 项事实的实现范围</summary><table><tr><th>事实</th><th>当前状态</th></tr>{% for item in result.coverage %}<tr><td>{{ item.fact_id }}. {{ item.name }}</td><td>已提供描述诊断；部分分布与量价统计量有近似区间，尚无统一的通过/失败检验</td></tr>{% endfor %}</table></details>
 <details><summary>数据与版本记录</summary><p>输入：{{ result.provenance.input_name }}；库版本：{{ result.provenance.package_version }}。</p><p>输入 SHA256：<code>{{ result.provenance.input_sha256 }}</code></p><p>程序与模板 SHA256：<code>{{ result.provenance.source_sha256 }}</code></p><p>时间均显示为 UTC；按日期分段时使用 {{ config.timezone or 'UTC' }}。同目录的 results.json 保存完整配置和软件版本，summary.csv 保存逐路径摘要。HTML 中已嵌入全部图片，可单独打开。</p></details>
 <footer>这是描述性研究报告，不代表对任何市场事实的统一通过/失败判断。生成时间（UTC）：{{ result.created_at }}</footer>
 </main><script>

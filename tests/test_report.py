@@ -113,6 +113,10 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert pd.Timestamp(residuals.timestamp.iloc[0]) == pd.Timestamp("2024-01-01T00:51Z")
     assert (out/segment["figure"]).exists()
     assert pd.read_csv(out/"conditional.csv").n_evaluated.iloc[0] == 650
+    intervals = pd.read_csv(out/"uncertainty.csv")
+    assert "excess_kurtosis" in set(intervals.metric)
+    assert set(intervals.block_length) == {10, 20}
+    assert result["groups"][0]["distribution"]["uncertainty"]["reference"] == "group.uncertainty"
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
     assert text.count("data:image/png;base64,") == 10

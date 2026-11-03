@@ -39,6 +39,10 @@ def main(argv=None):
     analyze.add_argument("--garch-max-segments", type=int, default=8, help="每条路径最多尝试拟合的连续段数")
     analyze.add_argument("--garch-max-iter", type=int, default=500)
     analyze.add_argument("--garch-burn", type=int, default=50, help="拟合后比较分布时舍弃段首的观测数")
+    analyze.add_argument("--bootstrap-reps", type=int, default=399, help="区块重采样次数；0 关闭近似区间")
+    analyze.add_argument("--bootstrap-block-lengths", type=int, nargs="+", default=[10, 20, 40], help="以基础收益观测数计的块长，逐个展示敏感性")
+    analyze.add_argument("--bootstrap-seed", type=int, default=20261103)
+    analyze.add_argument("--bootstrap-max-work", type=int, default=20000000, help="每条路径的收益数×重复次数×块长方案数上限")
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     kwargs = {k: getattr(args, k) for k in AnalysisConfig.__dataclass_fields__}

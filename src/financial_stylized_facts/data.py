@@ -33,11 +33,24 @@ class AnalysisConfig:
     garch_max_segments: int = 8
     garch_max_iter: int = 500
     garch_burn: int = 50
+    bootstrap_reps: int = 399
+    bootstrap_block_lengths: tuple[int, ...] = (10, 20, 40)
+    bootstrap_seed: int = 20261103
+    bootstrap_max_work: int = 20000000
 
     def validate(self):
-        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn"]:
+        for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn", "bootstrap_reps", "bootstrap_seed", "bootstrap_max_work"]:
             if isinstance(getattr(self, name), bool) or not isinstance(getattr(self, name), Integral):
                 raise ValueError(f"{name} 必须为整数")
+        if self.bootstrap_reps != 0 and not 200 <= self.bootstrap_reps <= 10000:
+            raise ValueError("bootstrap_reps 为 0（关闭）或 200–10000")
+        if self.bootstrap_seed < 0 or self.bootstrap_max_work < 1:
+            raise ValueError("bootstrap_seed 不能为负，bootstrap_max_work 必须为正")
+        blocks = self.bootstrap_block_lengths
+        if not blocks or len(blocks) > 6 or any(isinstance(x, bool) or not isinstance(x, Integral) or x < 2 or x > 10000 for x in blocks):
+            raise ValueError("bootstrap_block_lengths 需为 2–10000 的整数，最多 6 项")
+        if list(blocks) != sorted(set(blocks)):
+            raise ValueError("bootstrap_block_lengths 必须严格递增")
         if self.conditional_model not in {"auto", "off"}:
             raise ValueError("conditional_model 必须为 auto 或 off")
         if self.garch_min_points < 100 or self.garch_max_points < self.garch_min_points:
