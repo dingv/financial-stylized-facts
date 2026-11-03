@@ -69,6 +69,7 @@ ACF 横轴在固定网格模式中标为实际时长。例如五分钟收益的 
 | `scales.csv` | 各聚合尺度的样本量、缺失块数、峰度与高斯分位数距离 |
 | `leverage.csv` | 收益与前后绝对/平方收益的配对相关、有效配对数及不可计算原因 |
 | `volatility_acf.csv` | 全路径及各分段的长范围绝对收益 ACF、lag 与配对数 |
+| `long_memory.csv` | 修正 R/S 的窗口、带宽、统计量、原始/修正渐近 p 和不可计算原因 |
 | `volume.csv` | 逐路径区间成交量与绝对/平方收益的 Pearson、Spearman 相关与状态 |
 | `timescale.csv` | 两种时间方向的粗细波动相关、差值、配对数与实际间隔 |
 | `conditional.csv` | 各连续段的拟合状态、GARCH 参数、前后峰度与诊断提示 |
@@ -215,8 +216,7 @@ fsf analyze prices.csv --output /tmp/report-persistence \
 ## Python 调用
 
 ```python
-from financial_stylized_facts.data import AnalysisConfig
-from financial_stylized_facts.report import analyze_csv
+from financial_stylized_facts import AnalysisConfig, analyze_csv
 
 result = analyze_csv(
     "prices.csv", "/tmp/report-python",

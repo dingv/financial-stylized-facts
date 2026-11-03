@@ -4,11 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "financial-stylized-facts"
-version = "0.11.0.dev0"
+version = "0.12.0.dev0"
 description = "Cross-market financial stylized facts analysis and reporting"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy>=2.2,<3", "scipy>=1.15,<2", "pandas>=2.2,<3", "matplotlib>=3.10,<4", "jinja2>=3.1,<4"]
+keywords = ["stylized-facts", "finance", "time-series", "agent-based-models"]
+
+[project.urls]
+Repository = "https://github.com/dingv/financial-stylized-facts"
+Documentation = "https://github.com/dingv/financial-stylized-facts/blob/main/docs/usage.md"
+Issues = "https://github.com/dingv/financial-stylized-facts/issues"
 
 [project.scripts]
 fsf = "financial_stylized_facts.cli:main"

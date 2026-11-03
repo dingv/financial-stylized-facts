@@ -14,6 +14,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="生成逐资产、逐路径的金融统计诊断报告")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
+    demo = commands.add_parser("demo", help="无需外部数据，一条命令生成可重现的合成演示报告")
+    demo.add_argument("--output",type=Path,required=True,help="新的目录，保存合成输入、配置和 report/index.html")
+    demo.add_argument("--kind",choices=["basic","activity"],default="basic")
+    demo.add_argument("--seed",type=int,default=20261102)
+    demo.add_argument("--observations",type=int,default=2400,help="每条路径 512–10000 个收益；activity 必须为偶数")
     prepare = commands.add_parser("prepare", help="只读转换 FRED、EBS Tick 或明确字段的日频 CSV")
     prepare.add_argument("format", choices=["fred", "ebs-tick", "daily-csv"])
     prepare.add_argument("input", type=Path)
@@ -84,6 +89,12 @@ def main(argv=None):
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     try:
+        if args.command == "demo":
+            from .demo import run_demo
+            result=run_demo(args.output,args.kind,args.seed,args.observations)
+            print(f"演示报告：{(args.output/'report/index.html').resolve()}")
+            print(f"合成输入和种子已保存；分别分析 {len(result['groups'])} 条路径。HTML 可单独复制到本地打开。")
+            return 0
         if args.command == "prepare":
             common = {"start": args.start, "end": args.end}
             if args.format == "fred":

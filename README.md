@@ -4,23 +4,24 @@
 
 当前首版目标、进度与验收要求见[项目进度](docs/status.md)。
 
-目标是覆盖 Cont 总结的 11 项事实：输入价格、收益率及可选成交量数据，生成便于阅读的图文报告，以及可复核的统计结果。用于比较真实市场与模拟市场，不局限于外汇。
+覆盖 Cont 总结的 11 项事实：输入价格及可选成交量数据，生成便于阅读的图文报告，以及可复核的统计结果。用于比较真实市场与模拟市场，不局限于外汇。当前不直接接受预计算收益率。
 
 **当前版本：十一项事实已有描述性诊断。** 支持 CSV 价格输入、时间采样、收益分布、自相关、涨跌不对称、多尺度分布变化、间歇性、收益与后续波动关系，较长范围的波动相关对照、区间成交量与波动关系，粗细尺度波动的时间方向对照，以及 GARCH 调整后的残差厚尾，生成独立 HTML 报告与统计数据。分布与部分量价统计量已有区块重采样近似区间；早期时间相关指标另有 HAC 区间、带宽对照及单路径内多重比较区间。长尺度部分增加 Lo 修正 R/S 的窗口与带宽对照，但不自动宣称长记忆。条件厚尾需要可选 arch 依赖；各方法有明确适用条件，不提供“11 项全部通过”的统一评分。
 
-## 先看一份报告
+## 安装和第一份报告
 
-在已配置的 Conda 环境中运行：
+当前是私有试用版，尚未上传 PyPI。取得源码后，在仓库目录创建项目专用 Conda 环境（已有环境可跳过创建）：
 
 ```bash
+conda env create -f environment.yml
 conda activate financial-stylized-facts
-cd /home/dingwei/financial-stylized-facts
-demo_dir=$(mktemp -d /tmp/fsf-example-XXXXXX)
-python examples/synthetic_prices.py "$demo_dir/prices.csv"
-fsf analyze "$demo_dir/prices.csv" --output "$demo_dir/report" --frequency 1min --price-type synthetic
+python -m pip install --no-deps --no-build-isolation .
+fsf demo --output /tmp/fsf-first-demo
 ```
 
-打开输出目录里的 `index.html`，即可切换查看五种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH、有明显偏度的独立收益，以及负冲击后增大波动的示意过程。最后一种只用于验证时间方向，不是拟合得到的真实市场模型。HTML 已嵌入图片，可以单独复制到本地打开。数值另行导出 JSON 与 CSV。
+打开 `/tmp/fsf-first-demo/report/index.html`，即可切换查看五种合成序列：独立高斯、独立厚尾、有波动持续性的 GARCH、有明显偏度的独立收益，以及负冲击后增大波动的示意过程。它们不是拟合得到的真实市场模型。HTML 已嵌入图片，可以单独复制到本地打开；JSON 与 CSV 用于核对数值。输出目录须尚不存在，重复试用请换一个新目录。演示已包含在安装包内，不依赖当前工作目录或额外行情下载。
+
+wheel 安装、服务器报告下载和常见问题见[安装试用指南](docs/installation.md)。
 
 报告先给当前路径的具体观察，再逐项看图与限制；每个观察都能追溯到统计结果。它会提醒极端观测对峰度的影响、数据缺口和拟合覆盖率，不把十一项事实当作自动评分表。
 
@@ -29,16 +30,12 @@ fsf analyze "$demo_dir/prices.csv" --output "$demo_dir/report" --frequency 1min 
 量价与时间方向另有一个刻意构造的校验示例：
 
 ```bash
-activity_dir=$(mktemp -d /tmp/fsf-activity-XXXXXX)
-python examples/activity_prices.py "$activity_dir/prices.csv"
-fsf analyze "$activity_dir/prices.csv" --output "$activity_dir/report" \
-  --frequency 1min --coarse-factor 2 --volume-kind interval \
-  --volume-unit synthetic-units --price-type synthetic
+fsf demo --kind activity --output /tmp/fsf-activity-demo
 ```
 
 它展示同一构造过程及其时间反转：粗细波动差值应反号，同期量价关系应保持。成交量是人为生成的，只用于检查计算和阅读图形，不能当作真实市场证据。
 
-## 计划提供什么
+## 已提供的工作流程
 
 - 统一的数据检查与采样约定，明确时间尺度、缺失值和交易时段。
 - 逐资产、逐模拟路径分析，展示统计量、图形和证据局限。
@@ -46,6 +43,15 @@ fsf analyze "$activity_dir/prices.csv" --output "$activity_dir/report" \
 - 用已知性质的合成序列和多个真实市场的数据验证。
 
 指标不是所有市场都必须通过的打分表。数据不足、缺少成交量或检验不适用时，将明确说明原因。
+
+Python 入口：
+
+```python
+from financial_stylized_facts import AnalysisConfig, analyze_csv
+
+result = analyze_csv("prices.csv", "/tmp/my-fsf-report",
+                     AnalysisConfig(frequency="5min", price_type="transaction"))
+```
 
 ## 目录
 
