@@ -15,7 +15,7 @@
 | [BRENT.csv](examples/BRENT.csv) | 2010-01-04 — 2025-12-31 | 4,047 | Brent FOB 现货，USD/桶 |
 | [HENRYHUB.csv](examples/HENRYHUB.csv) | 2010-01-04 — 2025-12-31 | 4,036 | Henry Hub 天然气现货，USD/百万 Btu |
 | [GOLD.csv](examples/GOLD.csv)、[SILVER.csv](examples/SILVER.csv) | 1960-01 — 2025-12 | 各 792 | 月均价，USD/金衡盎司 |
-| [COPPER.csv](examples/COPPER.csv)、[WHEAT.csv](examples/WHEAT.csv)、[MAIZE.csv](examples/MAIZE.csv)、[SOYBEANS.csv](examples/SOYBEANS.csv) | 1960-01 — 2025-12 | 各 792 | 月均价，USD/公吨 |
+| [COPPER.csv](examples/COPPER.csv) | 1960-01 — 2025-12 | 792 | 月均价，USD/公吨 |
 | [BTC_FUT_202512.csv](examples/BTC_FUT_202512.csv)、[ETH_FUT_202512.csv](examples/ETH_FUT_202512.csv) | 2025-10 — 2025-11 | 各 1,464 | 固定交割合约小时收盘价，USDT |
 | [TXO_202512_24000_CALL.csv](examples/TXO_202512_24000_CALL.csv)、[TXO_202512_24000_PUT.csv](examples/TXO_202512_24000_PUT.csv) | 2025-03-20 — 2025-12-16 | 各 186 | 台指期权每日结算权利金，指数点 |
 
@@ -51,9 +51,9 @@
 
 从 Excel 的 `Data 1` 提取 2010–2025 全部观测，保留源精度和空白。Brent 有 4,047 个有效报价；Henry Hub 有 4,035 个有效报价和 1 个空白。未补周末、插值或去极值。这些是现货报价，不是期货连续合约或总回报指数，没有成交量。
 
-## 金属与农产品来源
+## 金属数据来源
 
-**World Bank Prospects Group, Commodity Price Data (Pink Sheet)**：[官方数据目录与 CC BY 4.0 许可](https://datacatalog.worldbank.org/search/dataset/0038238/commodity-prices-history-and-projections)。使用 2026 年 10 月快照的 `Monthly Prices`，预先选择 1960–2025 全部月份。黄金、白银按金衡盎司；铜、美国 HRW 小麦、玉米、大豆按公吨，均为名义美元报价。
+**World Bank Prospects Group, Commodity Price Data (Pink Sheet)**：[官方数据目录与 CC BY 4.0 许可](https://datacatalog.worldbank.org/search/dataset/0038238/commodity-prices-history-and-projections)。使用 2026 年 10 月快照的 `Monthly Prices`，预先选择 1960–2025 全部月份。黄金、白银按金衡盎司；铜按公吨，均为名义美元报价。
 
 每月一条，月初日期仅作月份标签。保留源数值和缺失槽，不插值；计算月均价格之间的变化，不把它写成月末收盘收益。原始 Excel 的 `Description` 保留各报价品种的定义。转换只选择列、日期范围与重命名，来源为 World Bank，许可 CC BY 4.0。
 
@@ -89,7 +89,7 @@ python examples/prepare_market_data.py --raw /path/to/originals --output /tmp/fs
 
 ```bash
 python examples/prepare_market_data.py --raw /path/to/originals --output /tmp/extended-rebuilt \
-  --datasets GOLD SILVER COPPER WHEAT MAIZE SOYBEANS \
+  --datasets GOLD SILVER COPPER \
   BTC_FUT_202512 ETH_FUT_202512 TXO_202512_24000_CALL TXO_202512_24000_PUT
 ```
 

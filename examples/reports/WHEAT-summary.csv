@@ -1,2 +1,0 @@
-asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
-WHEAT,observed,792,792,1,0,0,0,791,1960-01-01 00:00:00+00:00,2025-12-01 00:00:00+00:00,0.0017693572112059918,0.05688988877800262,0.05309734513274336,10.25041712894395,computed,,1.1732433439886487,0.01390644753476612

@@ -13,7 +13,6 @@
 | Brent | 2010–2025，欧洲 Brent FOB 现货，美元/桶 | [BRENT.html](reports/BRENT.html) |
 | Henry Hub | 2010–2025，天然气现货，美元/百万 Btu | [HENRYHUB.html](reports/HENRYHUB.html) |
 | 黄金、白银、铜 | 1960–2025，月度均价 | [黄金](reports/GOLD.html) · [白银](reports/SILVER.html) · [铜](reports/COPPER.html) |
-| 小麦、玉米、大豆 | 1960–2025，月度均价 | [小麦](reports/WHEAT.html) · [玉米](reports/MAIZE.html) · [大豆](reports/SOYBEANS.html) |
 | BTC、ETH 交割期货 | 2025-10 至 2025-11，单一 2025-12-26 到期合约的小时收盘价 | [BTC 期货](reports/BTC_FUT_202512.html) · [ETH 期货](reports/ETH_FUT_202512.html) |
 | 台指看涨／看跌期权 | 2025-03-20 至 2025-12-16，2025-12-17 到期，K=24000，日结算价 | [看涨](reports/TXO_202512_24000_CALL.html) · [看跌](reports/TXO_202512_24000_PUT.html) |
 

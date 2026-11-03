@@ -20,7 +20,6 @@
 | BTC、ETH 日频参考价与现货成交额 | 2020–2025 | Coin Metrics | [BTC](examples/reports/BTC.html) · [ETH](examples/reports/ETH.html) |
 | Brent 原油、Henry Hub 天然气日频现货价 | 2010–2025 | U.S. EIA | [Brent](examples/reports/BRENT.html) · [Henry Hub](examples/reports/HENRYHUB.html) |
 | 黄金、白银、铜月度均价 | 1960–2025 | World Bank Pink Sheet | [黄金](examples/reports/GOLD.html) · [白银](examples/reports/SILVER.html) · [铜](examples/reports/COPPER.html) |
-| 小麦、玉米、大豆月度均价 | 1960–2025 | World Bank Pink Sheet | [小麦](examples/reports/WHEAT.html) · [玉米](examples/reports/MAIZE.html) · [大豆](examples/reports/SOYBEANS.html) |
 | BTC、ETH 交割期货小时价格 | 2025-10 至 2025-11，12 月到期 | Binance Vision | [BTC 期货](examples/reports/BTC_FUT_202512.html) · [ETH 期货](examples/reports/ETH_FUT_202512.html) |
 | 台指看涨／看跌期权日结算价 | 2025-03 至 2025-12，K=24000 | TAIFEX | [看涨](examples/reports/TXO_202512_24000_CALL.html) · [看跌](examples/reports/TXO_202512_24000_PUT.html) |
 

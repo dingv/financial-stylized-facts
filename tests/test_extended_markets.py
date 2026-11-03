@@ -29,7 +29,6 @@ sources = module("market_sources.py")
 
 @pytest.mark.parametrize("name,first,last", [
     ("GOLD", 35, 4309), ("SILVER", .9, 62.3), ("COPPER", 715, 11785),
-    ("WHEAT", 59.9, 242.8), ("MAIZE", 45, 205.7), ("SOYBEANS", 94, 440),
 ])
 def test_monthly_samples_are_calendar_months_not_daily(name, first, last):
     _, _, frame, config, info = examples.load_cases(name)[0]

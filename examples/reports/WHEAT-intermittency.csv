@@ -1,4 +1,0 @@
-asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
-WHEAT,observed,10,79,790,1,8,1.163461538461538,,,,,False,insufficient_data,至少需要 20 个完整窗口及 10 次极端事件
-WHEAT,observed,30,26,780,11,8,2.02,,,,,False,insufficient_data,至少需要 20 个完整窗口及 10 次极端事件
-WHEAT,observed,60,13,780,11,8,1.770833333333333,,,,,False,insufficient_data,至少需要 20 个完整窗口及 10 次极端事件
