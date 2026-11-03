@@ -105,14 +105,17 @@ def test_prepare_cli_and_provenance_is_escaped_and_hash_checked(tmp_path):
     out = tmp_path/"ready"
     assert main(["prepare", "daily-csv", str(p), "--output", str(out), "--asset", "ABC", "--price-type", "adjusted close"]) == 0
     manifest = json.loads((out/"provenance.json").read_text())
-    manifest["notes"].append("<script>unsafe</script>")
+    manifest["notes"].append("<script>unsafe-note</script>")
+    manifest["source_name"] = "<script>unsafe</script>"
     (out/"provenance.json").write_text(json.dumps(manifest))
     report = tmp_path/"report"
     assert main(["analyze-prepared", str(out), "--output", str(report)]) == 0
     html = (report/"index.html").read_text()
     assert "&lt;script&gt;unsafe&lt;/script&gt;" in html
     assert "<script>unsafe</script>" not in html
-    assert "每步 = 1 个日频观测" in html and "source-date-slot" not in html
+    assert "基础收益：1 个日频观测" in html and "source-date-slot" not in html
+    assert "<script>unsafe-note</script>" in json.loads((report/"results.json").read_text())["data_source"]["notes"]
+    assert "unsafe-note" not in html
     assert json.loads((report/"results.json").read_text())["data_source"]["canonical_sha256"] == file_sha256(out/"prices.csv")
     (out/"prices.csv").write_text((out/"prices.csv").read_text().replace("100", "99"))
     assert main(["analyze-prepared", str(out), "--output", str(tmp_path/"wrong")]) == 2

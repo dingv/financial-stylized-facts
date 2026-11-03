@@ -29,6 +29,7 @@ from .uncertainty import uncertainty_diagnostics
 from .inference import dependence_uncertainty
 from .first_passage import first_passage_diagnostics
 from .findings import summarize, lag_label, human_timestamp
+from .assessment import assess, RULE_VERSION
 
 
 FACT_NAMES = ["收益自相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集", "条件厚尾", "波动相关的慢衰减", "杠杆效应", "成交量与波动", "时间尺度不对称"]
@@ -452,7 +453,7 @@ def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
     return paths, embedded
 
 
-def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基础统计诊断", source_provenance=None):
+def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统计评估报告", source_provenance=None):
     """Analyze canonical price CSV, writing a new output directory only.
 
     Returns are non-overlapping. No model simulation or market download occurs.
@@ -496,7 +497,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.13", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.14", "assessment_rule_version": RULE_VERSION, "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
@@ -521,6 +522,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     first_passage_rows = []
     long_memory_rows = []
     observation_rows = []
+    assessment_rows = []
     tail_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
@@ -550,6 +552,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
                 tail_rows.append({"asset_id": asset, "path_id": path, "kind": kind,
                                   "n": td["n"], "status": td["status"], "reason": td["reason"], **row})
         item["findings"] = summarize(item, config, sampled)
+        item["assessment"] = assess(item, config)
+        for row in item["assessment"]["by_fact"].values():
+            assessment_rows.append({"asset_id": asset, "path_id": path, **{
+                k: json.dumps(v, ensure_ascii=False, allow_nan=False) if isinstance(v, (dict, list)) else v
+                for k, v in row.items()}})
         for finding in item["findings"]["by_fact"].values():
             observation_rows.append({"asset_id": asset, "path_id": path, **finding,
                                      "references": json.dumps(finding["references"], ensure_ascii=False)})
@@ -561,7 +568,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
                 "observation_unit":config.observation_unit,**row})
         warnings = []
         if metrics["n"] < 100:
-            warnings.append("有效收益少于 100 条，仅作小样本描述；100 是本项目的提示阈值，不是统计保证。")
+            warnings.append("有效收益少于 100 条，属于小样本。")
         if quality["missing_prices"]:
             warnings.append(f"有 {quality['missing_prices']} 个网格价格缺失：未跨缺口计算收益，也未压缩 ACF 的时间轴。")
         if quality["carried_prices"]:
@@ -637,6 +644,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     # Strict JSON forbids silently writing NaN or Infinity as a statistical answer.
     serialized = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
     (output_dir / "results.json").write_text(serialized, encoding="utf-8")
+    pd.DataFrame(assessment_rows).to_csv(output_dir / "assessment.csv", index=False)
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
     pd.DataFrame(tail_rows).to_csv(output_dir / "tail_diagnostics.csv", index=False)
     pd.DataFrame(observation_rows, columns=["asset_id", "path_id", "fact_id", "status", "text", "limitation", "references"]).to_csv(output_dir/"observations.csv", index=False)

@@ -8,7 +8,7 @@
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。页面先展示主要观察，再按问题展示图表；方法、参数和详细数值放在可展开的部分。说明由统计结果和固定规则生成，无需 GPT。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。页面先展示 11 项评估总览，再给出各项关键数值与图形证据。说明由统计结果和固定规则生成，无需 GPT。指标解释与判读规则集中在[通用教学文档](learning-guide.md)。
 
 ## 准备自己的 CSV
 
@@ -67,10 +67,22 @@ fsf analyze prices.csv --output /tmp/multiscale-report \
 | 文件 | 用途 |
 | --- | --- |
 | `index.html` | 可独立复制、离线打开的图文报告 |
+| `assessment.csv` | 与 HTML 一致的逐项结论、证据类型、关键数值和规则版本 |
 | `summary.csv` | 样本量、峰度、均值、标准差等摘要 |
-| `observations.csv` | 每项分析的观察与限制 |
+| `observations.csv` | 保留的详细观察，兼容原有分析流程 |
 | `results.json` | 完整统计、配置、版本和输入哈希 |
 | `figures/` | 可用于论文或演示的 PNG |
 | 其他 CSV | ACF、多尺度、量价、首达时间、区间等逐项结果 |
 
 输出目录必须尚不存在，程序不会覆盖已有报告。数据不足或不适用的项目保留原因，JSON 中以 `null` 表示不可计算值。CSV 在内存中处理，超大逐笔文件应先转换或选择研究范围。
+
+## 在程序中读取评估结果
+
+```python
+for group in result["groups"]:
+    for fact in group["assessment"]["by_fact"].values():
+        print(group["asset_id"], group["path_id"], fact["name"],
+              fact["label"], fact["evidence_level"], fact["metrics"])
+```
+
+每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.14 新增 `assessment`，已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。

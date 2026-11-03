@@ -1,13 +1,13 @@
 """Cross-market diagnostics. Public entry points: AnalysisConfig, analyze_csv."""
 
-__version__ = "0.13.0.dev0"
+__version__ = "0.14.0.dev0"
 
 from .data import AnalysisConfig
 
 __all__ = ["AnalysisConfig","analyze_csv","__version__"]
 
 
-def analyze_csv(input_path,output_dir,config=None,*,title="金融市场 · 基础统计诊断",source_provenance=None):
+def analyze_csv(input_path,output_dir,config=None,*,title="金融市场 · 统计评估报告",source_provenance=None):
     """Analyze canonical prices into a new directory; returns the results dict.
 
     Never modifies input, downloads data, or overwrites an existing output.

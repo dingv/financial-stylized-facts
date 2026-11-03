@@ -26,4 +26,4 @@ python examples/run_reports.py --dataset all --output /tmp/fsf-markets
 
 日频示例的一步是相邻有效报价，可能跨越假日或周末。汇率 CSV 中的空白行保留，但本示例在分析时明确选择 `available` 模式。它们不是固定 24 小时收益，也不能用于展示分钟级市场微观结构。
 
-数据来源、复权与再分发说明见 [data/README.md](../data/README.md)。报告所用配置与输入哈希保存在 HTML 的方法部分和完整结果中。
+数据来源、复权与再分发说明见 [data/README.md](../data/README.md)。报告中的逐项结论同时导出到 `assessment.csv`；完整配置和输入哈希保存在 `results.json`。指标含义与判读规则见[通用教学文档](../docs/learning-guide.md)。

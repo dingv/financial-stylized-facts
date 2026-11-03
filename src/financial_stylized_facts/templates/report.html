@@ -1,155 +1,63 @@
-{% macro observation(g, n) %}<p class="finding">{{ g.findings.by_fact[n].text }}</p>{% endmacro %}
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ result.title }}</title>
 <style>
-:root{color-scheme:light;--ink:#263341;--muted:#657386;--line:#e0e6ed;--blue:#2563a6}
-*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:var(--ink);font:16px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif}
-main{max-width:1080px;margin:40px auto;padding:0 28px 60px}header{padding:20px 0 24px;border-bottom:1px solid var(--line)}
-.eyebrow{font-size:13px;color:var(--blue);letter-spacing:.09em}h1{font-size:30px;line-height:1.35;margin:12px 0}h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:0 0 6px}
-p{margin:8px 0 16px}.muted,small{color:var(--muted)}.lead{max-width:850px}.toolbar{margin:24px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-select{font:inherit;padding:8px 12px;border:1px solid #bbc7d5;border-radius:7px;background:white;max-width:100%}
-section.card{margin:20px 0;padding:26px 28px;background:white;border:1px solid var(--line);border-radius:12px}img{display:block;width:100%;height:auto;margin-top:12px}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}.metric{padding:14px 18px;background:#eef3f8;border-radius:8px}.value{font-size:25px;font-weight:650;overflow-wrap:anywhere}
-.finding{font-weight:550;color:#183f62;background:#f0f5fa;padding:12px 16px;border-radius:7px}.overview li{margin:10px 0}.notice{border-left:3px solid #cf9b42;padding:8px 14px;background:#fff9ee;margin:10px 0}.path[hidden]{display:none}
-details{margin:20px 0}summary{cursor:pointer;font-weight:600}table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}td,th{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
-code{overflow-wrap:anywhere;font-size:13px}footer{margin-top:32px;font-size:13px;color:var(--muted)}.table-wrap{overflow:auto}
-@media(max-width:650px){main{padding:0 14px;margin:16px auto}.metrics{grid-template-columns:1fr}section.card{padding:18px 14px}h1{font-size:25px}}
-@media print{body{background:white}.path[hidden]{display:block}.toolbar{display:none}section.card{break-inside:avoid}main{max-width:none}}
+:root{color-scheme:light;--ink:#233349;--muted:#627186;--line:#dfe6ed;--blue:#245b91}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f4f7fa;color:var(--ink);font:15px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif}
+main{max-width:1120px;margin:36px auto;padding:0 28px 60px}header{padding:12px 0 20px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:12px;color:var(--blue);letter-spacing:.12em}h1{font-size:31px;line-height:1.3;margin:12px 0}h2{font-size:21px;margin:0 0 14px}h3{font-size:17px;margin:14px 0 8px}
+p{margin:8px 0 12px}a{color:var(--blue);text-underline-offset:3px}.muted,small{color:var(--muted)}.toolbar{margin:22px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+select{font:inherit;padding:8px 12px;border:1px solid #b7c6d5;border-radius:7px;background:white;max-width:100%}
+.card{margin:20px 0;padding:25px 28px;background:white;border:1px solid var(--line);border-radius:12px;scroll-margin-top:20px}img{display:block;width:100%;height:auto;margin-top:16px}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:16px 0}.metric{flex:1;min-width:160px;padding:12px 16px;background:#f1f5f9;border-radius:8px}.value{font-size:23px;font-weight:650;overflow-wrap:anywhere}
+.finding{font-size:16px;line-height:1.85}.badge{display:inline-block;padding:3px 9px;border-radius:5px;background:#edf2f7;font-size:12px;color:#455970;white-space:nowrap}.badge.interval{background:#e4f2ed;color:#25674f}.badge.unavailable{background:#f1f1f1;color:#707070}
+.notice{border-left:3px solid #c79d50;padding:7px 12px;background:#fff9ed;margin:10px 0;font-size:14px}.path[hidden]{display:none}.table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:600}td:first-child{min-width:150px}td:nth-child(2){min-width:160px}.key{color:var(--muted);font-size:13px}.caption{font-size:13px;color:var(--muted)}footer{margin-top:32px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+@media(max-width:650px){main{padding:0 12px;margin:16px auto}.card{padding:18px 14px}h1{font-size:25px}.metric{min-width:130px}table{font-size:13px}}
+@media print{body{background:white}.path[hidden]{display:block}.toolbar{display:none}.card{break-inside:avoid}main{max-width:none}}
 </style></head><body><main>
-<header><div class="eyebrow">FINANCIAL STYLIZED FACTS · 初版诊断</div><h1>{{ result.title }}</h1>
-<p class="lead">先看价格与收益，再看分布形状和时间相关性。每个资产、每条路径单独计算与展示。</p>
-<p class="muted">本版提供十一项事实的描述性诊断，并为部分分布、量价和时间相关指标提供近似区间。缺少数据或依赖时会明确说明；完整的正式统计检验仍待补齐。</p></header>
-{% if result.data_source %}<section class="card"><h2>这份数据代表什么？</h2><p>{{ result.data_source.source_name }} · {{ config.price_type }}</p>
-<details><summary>查看数据口径、缺失处理和来源</summary><ul>{% for note in result.data_source.notes %}<li>{{ note }}</li>{% endfor %}</ul>
-<p>输入范围内 {{ result.data_source.selected_source_rows }} 行；源价格显式缺失 {{ result.data_source.missing_source_prices }} 行；转换移除 {{ result.data_source.rows_removed }} 行。</p><p>原文件 SHA256：<code>{{ result.data_source.source_sha256 }}</code>。输入 CSV 已与转换清单的哈希核对。</p></details></section>{% endif %}
-<div class="toolbar"><label for="path-select">选择资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
+<header><div class="eyebrow">FINANCIAL STYLIZED FACTS</div><h1>{{ result.title }}</h1>
+<p class="muted">逐项结论 · 关键统计量 · 图形证据</p>
+{% if result.data_source %}<p class="caption">数据：{{ result.data_source.source_name }} · {{ config.price_type }}</p>{% endif %}</header>
+<div class="toolbar"><label for="path-select">资产 / 路径</label><select id="path-select" aria-label="选择资产和路径">
 {% for g in groups %}<option value="{{ g.id }}">{{ g.asset_id }} · {{ g.path_id }}</option>{% endfor %}</select>
-<span class="muted">{% if config.sampling == 'grid' %}采样间隔 {{ clock_label }}{% else %}每步 = {{ clock_label }}{% endif %} · 非重叠对数收益</span></div>
-{% if config.sampling == 'observations' %}<div class="notice">按观测顺序分析，相邻一步代表 {{ clock_label }}。没有自动校验交易日历，无法识别漏掉的交易日；lag 不表示固定日历时长。</div>{% endif %}
-{% if config.price_type == 'unspecified' %}<div class="notice">尚未声明价格类型。正式比较时请注明成交价、中间价或复权收盘价，以免把不同口径混在一起。</div>{% endif %}
+<span class="muted">基础收益：{{ clock_label }} · 非重叠对数收益</span></div>
 {% for g in groups %}<article class="path" id="{{ g.id }}" {% if not loop.first %}hidden{% endif %}>
 <h2>{{ g.asset_id }} · {{ g.path_id }}</h2><p class="muted">{{ g.range_label }}</p>
-<div class="metrics"><div class="metric"><small>有效收益数</small><div class="value">{{ g.distribution.n }}</div></div><div class="metric"><small>修正超额峰度</small><div class="value">{{ g.distribution.excess_kurtosis|number }}</div></div><div class="metric"><small>真实 / 沿用形成的零收益比例</small><div class="value">{% if g.distribution.zero_fraction is not none %}{{ (g.distribution.zero_fraction * 100)|number }}%{% else %}不可计算{% endif %}</div></div></div>
-<section class="card overview"><h2>这条路径先看三件事</h2><ol>{% for point in g.findings.overview %}<li>{{ point }}</li>{% endfor %}</ol><p class="muted">摘要只引用本路径的计算结果，不是十一项事实的通过评分。下面逐项看图、数值和限制。</p></section>
+<div class="metrics"><div class="metric"><small>有效收益数</small><div class="value">{{ g.distribution.n }}</div></div><div class="metric"><small>收益标准差</small><div class="value">{{ g.distribution.std|number }}</div></div><div class="metric"><small>超额峰度</small><div class="value">{{ g.distribution.excess_kurtosis|number }}</div></div></div>
+<section class="card"><h2>评估总览</h2><div class="table-wrap"><table><thead><tr><th>Stylized fact</th><th>本路径结论</th><th>关键结果</th></tr></thead><tbody>
+{% for n, a in g.assessment.by_fact.items() %}<tr><td><a href="#{{ g.id }}-fact-{{ n }}">{{ n }}. {{ a.name }}</a></td><td>{{ a.label }}{% if a.scope_note %}<br><span class="key">{{ a.scope_note }}</span>{% endif %}<br><span class="badge {{ a.evidence_level }}">{{ a.evidence_label }}</span></td><td>{% if a.metrics %}{% for m in a.metrics %}<span class="key">{{ m.label }}</span> {{ m.value|number }}{{ m.unit }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}{{ a.summary }}{% endif %}</td></tr>{% endfor %}
+</tbody></table></div><p class="caption">区间证据与描述性结果分别标注；逐项阅读，无汇总评分。指标含义和判读规则见<a href="https://github.com/dingv/financial-stylized-facts/blob/main/docs/learning-guide.md">通用教学文档</a>。</p></section>
 {% for warning in g.warnings %}<div class="notice">{{ warning }}</div>{% endfor %}
-<section class="card"><h2>1. 价格怎样变化？</h2><p>上图是价格，下图是每个采样区间的收益。价格的长期漂移与短期跳动，需要分开看；收益图则帮助定位平静和剧烈变化的时段。</p>
-<img src="{{ g.images.timeline }}" alt="{{ g.asset_id }} {{ g.path_id }} 的价格和收益时间序列"><p class="muted">保留缺失与交易时段断点；没有用未来价格补齐过去。</p></section>
-<section class="card"><h2>2. 收益主要集中在哪里？</h2>{{ observation(g, '2') }}<p>这条曲线描述本路径收益分布，没有混入其他路径，也没有平均不同路径的曲线。</p>
-<img src="{{ g.images.density }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益概率密度图">
-<details><summary>进一步看尾部概率与 Q-Q 对照</summary>
-<p>左图回答“离均值超过这么多个标准差的收益，占多少？”；右图按从小到大的顺序比较本路径收益与高斯分布的分位数。左端向下、右端向上偏离虚线，是相应样本尾部偏大的线索；偏离也可能来自偏斜或多种波动状态。</p>
-<img src="{{ g.images.tail_diagnostics }}" alt="{{ g.asset_id }} {{ g.path_id }} 的经验尾概率和高斯分位数对照">
-{% if g.tail_diagnostics.status != 'computed' %}<p>{{ g.tail_diagnostics.reason }}</p>{% endif %}
-<p class="muted">均值与标准差都由本路径全部有效收益估计。尾概率采用严格超过，零计数在对数纵轴留空，不代表总体概率为零。水平点线表示一条观测的比例，不是置信界限。Q-Q 虚线是等分位参考线，没有在正文密度图叠加正态曲线；最多显示 2000 个固定排序位置并保留两端。这里没有拟合尾指数或提供正态性检验，极端端点也只有少量观测支撑。数值见 tail_diagnostics.csv。</p></details>
-<p class="muted">{{ g.findings.by_fact['2'].limitation }}</p>
-{% if g.density.status != 'computed' %}<p class="muted">未生成平滑密度：{{ g.density.reason }}</p>{% else %}<p class="muted">使用全体有效收益，Scott 带宽 KDE；平滑会影响视觉形状，峰度直接从样本计算。</p>{% endif %}
-{% if g.uncertainty.status in ['computed', 'partially_computed'] %}<p>下面的近似区间用于观察估计有多稳定。不同块长的结果都保留；区间变化很大时，结论可能依赖对时间相关性的处理。</p>
-<table><tr><th>块长（基础观测数）</th><th>超额峰度的近似 95% 区间</th></tr>{% for b in g.uncertainty.blocks %}<tr><td>{{ b.block_length }}</td><td>{% if b.status == 'computed' %}{% for m in b.intervals %}{% if m.metric == 'excess_kurtosis' %}{% if m.status == 'computed' %}[{{ m.lower|number }}, {{ m.upper|number }}]{% else %}{{ m.reason }}{% endif %}{% endif %}{% endfor %}{% else %}{{ b.reason }}{% endif %}</td></tr>{% endfor %}</table>
-<p class="muted">这些是单项的近似区间，不是多个指标同时成立的保证，也不是“厚尾通过”的判定。重采样依赖段内近似平稳、弱依赖和足够高阶矩；强远尾、长记忆或状态变化可能使峰度区间不可靠。</p>
-{% else %}<p class="muted">本次未提供重采样区间：{{ g.uncertainty.reason }}。</p>{% endif %}</section>
-<section class="card"><h2>3. 涨跌方向与波动大小，会持续吗？</h2>{{ observation(g, '1') }}{{ observation(g, '6') }}<p>左图看收益的线性相关；中、右图分别看绝对收益和平方收益，用于观察波动大小是否持续。三图纵轴相同，便于比较相关强弱；横轴表示间隔，lag 0 没有画出。</p>
-<img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益、绝对收益和平方收益自相关">
-<p class="muted">只比较同一交易时段内的观测，保留缺口占用的时间。少于 {{ config.min_pairs }} 对观测的位置留空。</p>
-{% if g.dependence_uncertainty.status in ['computed', 'partially_computed'] %}<p>图中淡色区间表示单个相关系数估计的不确定性：仅对满足条件的前 {{ g.dependence_uncertainty.max_lag }} 个滞后绘制，固定使用带宽 {{ g.dependence_uncertainty.plot_bandwidth }}。没有区间不等于估计精确。它们依赖短记忆等假设，不能据此证明长记忆；多处同时查看时，还需参考下面的多重比较区间。</p>{% else %}<p class="muted">本次未生成时间相关指标的近似区间：{{ g.dependence_uncertainty.reason }}。</p>{% endif %}
-{% for name, a in g.acf.items() %}{% if a.status != 'computed' %}<p class="muted">{{ name }}：{{ a.reason }}</p>{% endif %}{% endfor %}</section>
-<section class="card"><h2>4. 大涨和大跌一样常见吗？</h2>{{ observation(g, '3') }}<p>橙色柱是均值左侧的大幅变化，蓝色柱是右侧。两边采用相同的标准差距离，并以本路径全部有效收益为分母。</p>
-<img src="{{ g.images.asymmetry }}" alt="{{ g.asset_id }} {{ g.path_id }} 的左右尾概率比较">
-<p class="muted">偏度是标准化三阶矩，与“上涨次数更多”不是一回事。</p>
-<h3>达到相同涨跌幅，需要多久？</h3><p>这是另一种比较：从每个起点分别等待价格达到相同大小的正、负对数收益阈值。曲线越早升高，表示更多起点较早达到该方向的阈值。上涨、下跌分开计时，同一起点可以先后达到两边，因此两条比例不必相加等于 100%。</p>
-{% set fp = g.first_passage %}
-{% if fp.status == 'computed' %}{% set first = fp.thresholds[0] %}<p class="finding">固定看首个阈值 ±{{ first.configured_threshold|number }} {{ 'σ' if fp.threshold_unit == 'sigma' else '对数收益' }}：在 {{ g.passage_window }} 内，上涨达到比例为 {{ (first.up.full_hit_probability*100)|number }}%，下跌为 {{ (first.down.full_hit_probability*100)|number }}%。两边使用相同的 {{ fp.full_horizon_starts }} 个完整窗口起点。</p>{% else %}<p class="muted">{{ fp.reason }}。</p>{% endif %}
-<img src="{{ g.images.first_passage }}" alt="{{ g.asset_id }} {{ g.path_id }} 的对称阈值首达时间累计比例">
-{% if fp.thresholds %}<p class="muted">主图分母固定为具备完整 {{ g.passage_window }} 后续数据的起点数，窗口内未达到阈值的也在分母中。它不只统计已经命中的起点，也不把末尾未观察完的起点当作未命中。{% if fp.threshold_unit == 'sigma' %}σ 为本路径基础收益的全样本标准差；没有去趋势。{% else %}使用明确指定的对数收益阈值；没有去趋势。{% endif %}重叠起点相互依赖，因此不使用独立样本的 p 值或区间。</p>
-<details><summary>查看阈值、完整窗口与截断观察</summary><p>本路径共有 {{ fp.all_starts }} 个有效价格起点，{{ fp.full_horizon_starts }} 个能连续观察完整窗口；其余 {{ fp.early_window_starts }} 个会遇到缺口或片段结束，其中 {{ fp.zero_followup_starts }} 个没有任何后续观测。主图只描述完整窗口这一组，其时间覆盖可能不同于全样本。达到阈值前遇到相反方向的阈值，不会终止另一方向的计时。</p>
-<div class="table-wrap"><table><tr><th>±对数阈值</th><th>方向</th><th>所有起点中已达到</th><th>完整窗口仍未达到</th><th>提前中断且未达到</th><th>全起点比例界限</th></tr>{% for t in fp.thresholds %}{% for direction in ['up','down'] %}{% set d=t[direction] %}{% set last=d.curve[-1] %}<tr><td>{{ t.log_threshold|number }}</td><td>{{ '上涨' if direction == 'up' else '下跌' }}</td><td>{{ d.observed_hits }}</td><td>{{ d.horizon_censored }}</td><td>{{ d.early_censored }}</td><td>{{ (last.all_start_lower_bound*100)|number }}% — {{ (last.all_start_upper_bound*100)|number }}%</td></tr>{% endfor %}{% endfor %}</table></div>
-<p>界限下端只计已观察到命中的起点，上端另假设所有提前中断且尚未命中的起点都可能在余下窗口命中。它是这批起点因缺少后续数据而留下的范围，<strong>不是置信区间</strong>，也没有使用独立截断假设去补齐等待时间。缺口和 session 边界均不跨越，不做插值。</p>
-<p>阈值和窗口预先配置，不挑差异最大的一组。±a 对数收益分别对应价格乘以 exp(a) 与 exp(−a)，不是算术意义的同百分比涨跌。全样本标准差阈值是回顾性尺度，不是实时交易规则；漂移、时段变化和阈值选择都会影响首达时间。逐步累计计数及比例见 first_passage.csv。</p></details>{% endif %}
-{% if fp.path_extrema is defined and fp.path_extrema.status == 'computed' %}<details><summary>查看已观察到的最大回撤与回升</summary><p>在同一连续价格片段内，观测到的最大峰后回撤为 {{ fp.path_extrema.drawdown.simple_percent|number }}%，最大谷后回升为 {{ fp.path_extrema.drawup.simple_percent|number }}%。两者可发生在不同起止时间；不跨缺口或 session 连接，片段长度和漂移会影响极值，不能直接当成总体涨跌不对称检验。</p><table><tr><th>方向</th><th>开始 / 结束（UTC）</th><th>对数幅度</th><th>基础间隔数</th></tr>{% for name in ['drawdown','drawup'] %}{% set e=fp.path_extrema[name] %}<tr><td>{{ '回撤' if name == 'drawdown' else '回升' }}</td><td>{{ e.start }}<br>{{ e.end }}</td><td>{{ e.log_magnitude|number }}</td><td>{{ e.steps }}</td></tr>{% endfor %}</table></details>{% endif %}
-<details><summary>查看涨跌分位数与连续涨跌段</summary><p>尾部柱图围绕本路径均值比较；下表分位数和连续涨跌段使用原始收益。连续同号收益构成一段，零收益、反向变化和缺口都会断段。边界处可能未完整观察到的段单独计数，不用于段幅度摘要。连续涨跌段、最大回撤和首达时间是不同的路径统计，不互相替代。</p>
-<table><tr><th>收益分位数</th><th>数值</th></tr>{% for q, v in g.asymmetry.quantiles.items() %}<tr><td>{{ q }}</td><td>{{ v|number }}</td></tr>{% endfor %}</table>
-<table><tr><th>连续段</th><th>完整段数</th><th>边界截断段数</th><th>累计对数收益绝对值中位数</th></tr>{% for name, r in g.asymmetry.runs.items() %}<tr><td>{{ '上涨' if name == 'up' else '下跌' }}</td><td>{{ r.complete_count }}</td><td>{{ r.boundary_censored_count }}</td><td>{{ r.median_abs_log_return|number }}</td></tr>{% endfor %}</table></details></section>
-<section class="card"><h2>5. 拉长时间间隔，分布更接近高斯吗？</h2>{{ observation(g, '4') }}<p>左图比较超额峰度，右图比较标准化收益分位数与高斯分位数的距离，距离越小表示选定分位数更接近。两者随尺度的变化应结合样本量一起看。</p>
-<img src="{{ g.images.aggregation }}" alt="{{ g.asset_id }} {{ g.path_id }} 的多尺度峰度与分位数偏离">
-<div class="table-wrap"><table><tr><th>基础间隔的倍数</th><th>有效收益数</th><th>超额峰度</th><th>分位数距离</th></tr>{% for s in g.aggregation.scales %}<tr><td>{{ s.factor }}</td><td>{{ s.n }}{% if s.small_sample %}（小样本）{% endif %}</td><td>{{ s.excess_kurtosis|number }}</td><td>{{ s.normal_quantile_rmse|number }}</td></tr>{% endfor %}</table></div>
-<p class="muted">在每个交易段内，从首个采样价格起按整块聚合；块内缺失则整块无效，尾部不完整块舍弃。每个尺度分别标准化。距离不是检验 p 值，样本变少也不等于已经高斯化。</p></section>
-<section class="card"><h2>6. 平静和剧烈的时段怎样交替？</h2>{{ observation(g, '5') }}<p>曲线是最近 {{ config.rms_window }} 个基础收益的均方根（RMS）。高处表示这段时间价格变化较大，低处表示较平静。只有窗口完整且位于同一交易段时才计算。</p>
-<img src="{{ g.images.intermittency }}" alt="{{ g.asset_id }} {{ g.path_id }} 的滚动 RMS">
-
-<p class="muted">完整 RMS 窗口 {{ g.intermittency.rms_valid_windows }} 个。RMS 没有减去局部均值，漂移也会使它升高；大幅波动阈值是统一的描述约定，不是间歇性的显著性检验。</p></section>
-<section class="card"><h2>7. 下跌之后，波动更大吗？</h2>{{ observation(g, '9') }}<p>横轴大于 0，表示比较当前收益与之后的波动；小于 0 则比较当前收益与之前的波动。两图分别用平方收益和绝对收益代表波动大小。</p>
-<img src="{{ g.images.leverage }}" alt="{{ g.asset_id }} {{ g.path_id }} 的收益与前后波动相关性">
-<p>若正滞后处为负相关，意味着相对较低的收益与后续较大的波动相伴。这是杠杆效应的一种统计线索，不能据此断定因果，也不要求所有市场都出现。</p>
-<p class="muted">每个滞后单独用有效配对计算 Pearson 相关；配对不足或方差太小的位置留空。外汇换成倒数报价会反转收益符号，相关系数也随之反号。</p>
-{% for proxy, estimate in g.leverage.items() %}{% if estimate.status != 'computed' %}<p class="muted">{{ proxy }}：{{ estimate.reason }}</p>{% endif %}{% endfor %}</section>
-<section class="card"><h2>8. 波动相关能持续多久，在不同时段都出现吗？</h2>{{ observation(g, '8') }}<p>左图把绝对收益 ACF 延长到最多 {{ config.volatility_max_lag }} 个基础间隔；右图按时间顺序分成 {{ config.stability_blocks }} 段，各段独立计算，查看全程的现象是否稳定。</p>
-<img src="{{ g.images.persistence }}" alt="{{ g.asset_id }} {{ g.path_id }} 的较长范围 ACF 和分段对照">
-<p>如果只有全程相关明显，分段结果却不同，就需要检查波动状态变化等因素。即使较长滞后仍有正相关，也不能仅凭这张图认定存在长记忆或幂律衰减。</p>
-<details><summary>查看分段范围与样本数</summary><div class="table-wrap"><table><tr><th>段</th><th>开始 / 结束（UTC）</th><th>有效收益数</th><th>状态</th></tr>{% for b in g.volatility_persistence.blocks %}<tr><td>{{ b.block }}</td><td>{{ b.start or '无观测' }}<br>{{ b.end or '无观测' }}</td><td>{{ b.acf.n }}</td><td>{{ '已计算' if b.acf.status == 'computed' else b.acf.reason }}</td></tr>{% endfor %}</table></div>
-<p class="muted">按时间排序后的观测槽数等分，保留缺口；交易时段边界与分段边界不配对。各段独立去均值，较短分段和缺口会改变配对覆盖率。图中不删除负相关、不筛选正点拟合直线。详细配对数见 volatility_acf.csv。</p></details>
-{% set lm = g.volatility_persistence.long_memory_test %}
-<h3>短期相关能解释这种持续性吗？</h3>
-<p>修正 R/S 对照观察绝对收益偏离其均值的累计幅度，并用不同带宽调整短期相关。每个连续片段分别检查全段、两个半段、四个四分段，既不跨缺口拼接，也不挑最显著的窗口。</p>
-{% if lm.status != 'computed' %}<p class="muted">{{ lm.reason }}</p>{% endif %}
-<p>这里的拒绝只针对所用带宽和渐近假设，并不是“长记忆已证实”。波动状态改变、极端值和没有被带宽覆盖的短期依赖也可能导致拒绝；带宽较大又可能掩盖长记忆。应一起看窗口与带宽的差别，不把检验计数当成市场的通过率。</p>
-<details><summary>查看窗口、带宽和检验数值</summary>
-<p>q 表示纳入短期依赖调整的基础间隔数；q=0 仅是独立序列参照，不作短期依赖检验。V 的未修正 95% 渐近参照区间约为 0.809–1.862。最后一列的 p 值已按本路径预设的 {{ lm.planned_family_size }} 个非零带宽组合做 Bonferroni 修正，包括样本不足的组合；没有对不同资产作联合修正。这不是有限样本精确检验。</p>
-<div class="table-wrap"><table><tr><th>片段 / 窗口</th><th>收益数</th><th>带宽 q</th><th>V</th><th>修正后 p / 状态</th></tr>
-{% for r in lm.rows %}<tr><td>{{ r.segment }} / {{ '全段' if r.partition == 1 else ('半段' if r.partition == 2 else '四分段') }} {{ r.window }}</td><td>{{ r.n }}</td><td>{{ r.bandwidth }}</td><td>{{ r.statistic|number }}</td><td>{% if r.status != 'computed' %}{{ r.reason }}{% elif r.reference_only %}独立序列参照{% elif r.p_is_numerical_upper_bound %}≤ {{ r.family_adjusted_p }}（数值上界）{% else %}{{ r.family_adjusted_p|number }}{% endif %}</td></tr>{% endfor %}</table></div>
-<p class="muted">每窗口至少 {{ config.long_memory_min_points }} 条收益且不少于 20(q+1)；这是项目门槛，不保证渐近近似准确。数据应满足稳定均值、适当矩与弱依赖条件。原始 p、窗口日期、不可计算原因见 long_memory.csv。</p></details></section>
-<section class="card"><h2>9. 交易更活跃时，价格变化更大吗？</h2>{{ observation(g, '10') }}
-{% if g.volume_volatility.status == 'not_applicable' %}<p class="muted">价格条数或报价次数不能代替成交量。</p>
-{% else %}<p>把同一条路径的区间按成交量从低到高分组。每个点表示一组区间的平均成交量与平均绝对收益；曲线向上，说明量较大的区间往往也有更大的价格变化。</p>
-<img src="{{ g.images.volume }}" alt="{{ g.asset_id }} {{ g.path_id }} 的成交量分组与绝对收益">
-<p class="muted">成交量单位：{{ g.volume_volatility.unit }}。</p>
-<details><summary>查看分组与平方收益对照</summary><table><tr><th>组</th><th>成交量范围</th><th>区间数</th><th>平均绝对收益</th></tr>{% for b in g.volume_volatility.bins %}<tr><td>{{ b.bin }}</td><td>{{ b.volume_min|number }} — {{ b.volume_max|number }}</td><td>{{ b.n }}</td><td>{{ b.mean_absolute_return|number }}</td></tr>{% endfor %}</table>
-<p>平方收益对照：Pearson {{ g.volume_volatility.correlations.squared.pearson|number }}；Spearman {{ g.volume_volatility.correlations.squared.spearman|number }}。最多五组，相同成交量不拆组；相关系数直接按区间观测计算，不是对这几个分组均值计算。</p></details>
-<p class="muted">缺失量不填零，不沿用上一期成交量。此处尚未扣除日内规律，因此交易活跃时段与波动时段重合，也可能贡献相关性；不解释为成交量导致波动。</p>{% endif %}</section>
-<section class="card"><h2>10. 大尺度与小尺度波动，谁的变化更早？</h2>{{ observation(g, '11') }}
-<p>每 {{ config.coarse_factor }} 个基础收益合成一个区间：大尺度波动看这一整段的净价格变化，小尺度波动看段内每一步变化的平均大小。左图比较两种先后顺序，右图显示它们的差。</p>
-<img src="{{ g.images.timescale }}" alt="{{ g.asset_id }} {{ g.path_id }} 的粗细尺度波动时间方向对照">
-<p>蓝线是“大尺度在前、小尺度在后”，橙线是相反顺序。右图用橙线减蓝线：负值表示前一种关系较强，正值表示后一种较强。接近零表示这两种顺序的相关强度相近。</p>
-{% if g.timescale_asymmetry.status != 'computed' %}<p>{{ g.timescale_asymmetry.reason }}。</p>{% endif %}
-<p class="muted">区间彼此不重叠，横轴表示两个区间之间的时间距离，不是基础收益的间隔。这里比较的是相关性，不是因果或预测能力检验；它也不同于价格变化的幂律缩放图。</p>
-<details><summary>查看粗细尺度定义与数据覆盖</summary><p>大尺度 C = |区间内收益之和|；小尺度 F = 区间内绝对收益的平均值。A(k) = corr(Fₜ, Cₜ₊ₖ)，差值 D(k) = A(k) − A(−k)。每个滞后按有效配对单独去均值，使用 Pearson 相关。每个 session 从首个价格开始分块；块内缺失则整块无效，不跨 session 配对。</p>
-<p>完整长度区间共 {{ g.timescale_asymmetry.quality.total_blocks }} 个，其中因缺失无效 {{ g.timescale_asymmetry.quality.invalid_blocks }} 个；尾部不够一块而舍弃 {{ g.timescale_asymmetry.quality.discarded_return_slots }} 个收益槽。正反方向的配对数及差值见 timescale.csv。不同尺度组合可能给出不同结果，不挑选差异最大的尺度作为结论。</p></details></section>
-<section class="card"><h2>11. 调整时变波动后，厚尾还在吗？</h2>{{ observation(g, '7') }}
-<p>先用 GARCH(1,1) 描述波动大小如何随时间变化，再将收益减去拟合均值、除以当时的条件波动。如果残差仍有较高峰度，说明这一个波动模型没有完全解释分布的厚尾。</p>
-{% if g.conditional_tails.reason %}<p>{{ g.conditional_tails.reason }}。</p>{% endif %}
-
-{% for s in g.conditional_tails.segments %}{% if s.status == 'computed' %}
-<h3>连续段 {{ s.segment }}</h3><p class="muted">{{ s.start }} — {{ s.end }} · 拟合 {{ s.n_fit }} 条，比较 {{ s.n_evaluated }} 条</p>
-<img src="{{ g.images[s.figure_key] }}" alt="{{ g.asset_id }} {{ g.path_id }} 第 {{ s.segment }} 段过滤前后分布与平方收益相关">
-<p>相同时间范围内，原始收益超额峰度为 <strong>{{ s.raw_distribution.excess_kurtosis|number }}</strong>，标准化残差为 <strong>{{ s.residual_distribution.excess_kurtosis|number }}</strong>。右图比较调整前后平方收益的相关；残差仍明显相关时，这个波动模型可能还不充分。</p>
-{% if 'near_unit_persistence' in s.flags %}<div class="notice">拟合的波动持续性接近 1，初始条件影响可能持续较久，残差结论需要谨慎解释。</div>{% endif %}
-{% if 'coefficient_near_zero_boundary' in s.flags %}<p class="muted">至少一个波动系数接近零边界；这也可能表示数据没有明显的该类动态，不自动当作拟合失败。</p>{% endif %}
-{% endif %}{% endfor %}
-<details><summary>查看各段状态、覆盖与拟合约定</summary><div class="table-wrap"><table><tr><th>段 / session</th><th>收益数</th><th>状态或原因</th></tr>{% for s in g.conditional_tails.segments %}<tr><td>{{ s.segment }} / {{ s.session_id }}</td><td>{{ s.n }}</td><td>{{ '已计算' if s.status == 'computed' else s.reason }}</td></tr>{% endfor %}</table></div>
-<p>缺失与 session 边界断开拟合；默认每段至少 {{ config.garch_min_points }} 条收益，每条路径最多尝试 {{ config.garch_max_segments }} 段、合计 {{ config.garch_max_points }} 条，按时间顺序处理，超限段不截断。拟合后舍弃每段前 {{ config.garch_burn }} 条，再对相同范围作前后比较。</p>
-<p>常数均值、Gaussian 准似然 GARCH(1,1)，arch 版本 {{ g.conditional_tails.arch_version or '不可用' }}。先对输入做显式中心化与缩放以改善优化，导出参数恢复到原收益单位。密度图只将原始收益再标准化以便比较；残差使用模型输出。优化未收敛时不生成残差结论。拟合参数、边界提示与配对数见 results.json；可用段的逐点残差在 conditional/。</p></details>
-<p class="muted">这是全段样本内诊断，不是样本外预测，也不证明已消除所有波动结构。原始收益与残差的峰度都只是描述统计，没有因为拟合成功就自动判定“条件厚尾成立”。</p></section>
-<details><summary>查看全部重采样区间与适用限制</summary><p>每个 session 内连续有效收益段独立做循环区块重采样，固定各段样本数；块只在本段内循环，不跨真实缺口。每种块长重复 {{ config.bootstrap_reps }} 次，使用百分位法。它保留部分短期依赖，但不估计未来市场状态变化的风险。</p>
-{% set labels = {'mean':'平均收益','std':'收益标准差','skewness':'修正偏度','excess_kurtosis':'修正超额峰度','tail_probability_3sigma':'超过 3 个标准差的比例','zero_fraction':'零收益比例','volume_abs_pearson':'成交量与绝对收益 Pearson','volume_abs_spearman':'成交量与绝对收益 Spearman','volume_squared_pearson':'成交量与平方收益 Pearson'} %}
-{% for b in g.uncertainty.blocks %}<h3>块长 {{ b.block_length }}</h3>{% if b.status != 'computed' %}<p>{{ b.reason }}</p>{% else %}<div class="table-wrap"><table><tr><th>统计量</th><th>估计值</th><th>近似 95% 区间</th></tr>{% for m in b.intervals %}<tr><td>{{ labels[m.metric] }}</td><td>{{ m.estimate|number }}</td><td>{% if m.status == 'computed' %}[{{ m.lower|number }}, {{ m.upper|number }}]{% else %}{{ m.reason }}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}{% endfor %}
-<p>单项区间没有做多重比较校正，不用“区间不含零”的数量给市场打分。零概率在所有重采样中保持零时，标记区间退化，不把未观察到事件理解为不可能发生。缺口或短段不足以支撑块长时直接说明；没有删除短段、压缩时间或拼接其他路径凑结果。详细数值见 uncertainty.csv。</p>
-<p class="muted">这里的重采样区间只适用于表中统计量。时间相关指标另用下述 HAC 区间；GARCH 参数和拟合后残差的不确定性尚未包含。不同资产的区间也不是联合置信区间。</p></details>
-<details><summary>查看时间相关指标的近似区间与多重比较</summary>
-<p>ACF、收益与前后波动的相关、粗细波动方向差值采用线性化加 Newey–West（Bartlett）HAC 标准误。它允许一定的异方差和短期相关，但依赖稳定的矩、弱依赖及足够高阶矩；长记忆、强远尾或市场状态变化时，区间可能不可靠。缺口保留原位置，不估计跨 session 的协方差。</p>
-<p>带宽决定纳入多少个滞后的协方差。本次预先指定 {{ g.dependence_uncertainty.bandwidths|join(' / ') }}，全部结果都保留；主图只使用第一个，不因缺失或更显著而更换。时间尺度差值的带宽单位是粗区间，其余为基础间隔。</p>
-<p>单项区间是近似 95% 区间；另对本路径全部 {{ g.dependence_uncertainty.family_size }} 个计划指标／滞后／带宽组合提供 Bonferroni 校正区间，用于控制同时查看多个结果的风险。它仍是渐近近似，不是有限样本保证，不跨资产联合校正，也不用于“通过项数”评分。</p>
-{% set family_labels = {'acf':'自相关','leverage':'收益与波动','timescale':'粗细方向差值'} %}
-{% set proxy_labels = {'return':'收益','absolute_return':'绝对收益','squared_return':'平方收益','absolute':'绝对收益','squared':'平方收益','difference':'方向差值'} %}
-{% if g.dependence_uncertainty.rows %}<div class="table-wrap"><table><tr><th>指标 / 代理</th><th>lag / 带宽</th><th>估计</th><th>单项区间</th><th>多重比较区间</th></tr>{% for r in g.dependence_uncertainty.rows %}<tr><td>{{ family_labels[r.family] }} / {{ proxy_labels[r.proxy] }}</td><td>{{ r.lag }} / {{ r.bandwidth }}</td><td>{{ r.estimate|number }}</td>{% if r.status == 'computed' %}<td>[{{ r.lower|number }}, {{ r.upper|number }}]</td><td>[{{ r.familywise_lower|number }}, {{ r.familywise_upper|number }}]</td>{% else %}<td colspan="2">{{ r.reason }}</td>{% endif %}</tr>{% endfor %}</table></div>{% else %}<p>{{ g.dependence_uncertainty.reason }}</p>{% endif %}
-<p class="muted">每项需要足够配对数，且带宽不小于该 lag；不满足时保留原因，不填零。区间与参数范围取交集。全部数值、配对数及换算后的时间单位见 dependence_intervals.csv。较长范围 ACF 和 GARCH 残差图没有套用这些区间。</p></details>
-<details><summary>查看本路径的计算口径与尾部计数</summary><div class="table-wrap"><table><tr><th>项目</th><th>数值 / 约定</th></tr>
-<tr><td>原始行数 / session 数</td><td>{{ g.quality.input_rows }} / {{ g.quality.sessions }}</td></tr><tr><td>缺失价格 / 沿用价格</td><td>{{ g.quality.missing_prices }} / {{ g.quality.carried_prices }}</td></tr>
-<tr><td>最大价格沿用时长</td><td>{{ config.max_staleness }}（仅 grid 模式）</td></tr><tr><td>价格类型</td><td>{{ config.price_type }}</td></tr><tr><td>未修正超额峰度 / Pearson 峰度</td><td>{{ g.distribution.excess_kurtosis_uncorrected|number }} / {{ g.distribution.pearson_kurtosis|number }}</td></tr>
-{% for threshold, tail in g.distribution.tail_counts.items() %}<tr><td>超过 {{ threshold }} 个本路径标准差</td><td>{{ tail.count }} 次 / {{ g.distribution.n }} 条收益</td></tr>{% endfor %}
-</table></div><p class="muted">ACF 使用同一路径全体有效观测的均值和固定平方偏差和，保留原网格与 session 边界。完整单段时与常见 adjusted=False 定义一致；有缺口时另报告每个 lag 的配对数。精确数值在 acf.csv 和 results.json 中。</p></details>
+<section class="card"><h2>价格与收益</h2><img src="{{ g.images.timeline }}" alt="{{ g.asset_id }} {{ g.path_id }} 价格和收益时间序列"><p class="caption">上：价格。下：{{ clock_label }} 对数收益。</p></section>
+{% for n, a in g.assessment.by_fact.items() %}<section class="card" id="{{ g.id }}-fact-{{ n }}">
+<h2>{{ n }}. {{ a.name }}</h2><span class="badge {{ a.evidence_level }}">{{ a.label }} · {{ a.evidence_label }}</span>
+<p class="finding">{{ a.summary }}</p>
+{% if a.metrics %}<div class="metrics">{% for m in a.metrics %}<div class="metric"><small>{{ m.label }}</small><div class="value">{{ m.value|number }}<small>{{ m.unit }}</small></div></div>{% endfor %}</div>{% endif %}
+{% for note in a.notes %}<div class="notice">{{ note }}</div>{% endfor %}
+{% if n == '1' %}<p class="caption">三类自相关曲线集中展示在<a href="#{{ g.id }}-fact-6">第 6 项</a>。相关检验范围为前 {{ g.dependence_uncertainty.max_lag }} 个滞后。</p>
+{% elif n == '2' %}<img src="{{ g.images.density }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益概率密度"><p class="caption">本路径收益 KDE；峰度直接由收益样本计算。</p>
+{% if g.density.status != 'computed' %}<p class="caption">{{ g.density.reason }}</p>{% endif %}
+{% elif n == '3' %}<img src="{{ g.images.asymmetry }}" alt="{{ g.asset_id }} {{ g.path_id }} 左右尾概率">
+<h3>达到相同涨跌幅，需要多久？</h3>
+{% set fp = g.first_passage %}{% if fp.status == 'computed' %}{% set t = fp.thresholds[0] %}<p>在 {{ g.passage_window }} 内，首个阈值 ±{{ t.configured_threshold|number }} {{ 'σ' if fp.threshold_unit == 'sigma' else '对数收益' }} 的上涨达到比例为 {{ (t.up.full_hit_probability*100)|number }}%，下跌为 {{ (t.down.full_hit_probability*100)|number }}%。</p>{% else %}<p class="caption">{{ fp.reason }}</p>{% endif %}
+<img src="{{ g.images.first_passage }}" alt="{{ g.asset_id }} {{ g.path_id }} 对称阈值首达时间"><p class="caption">两侧使用相同完整窗口起点；曲线为累计达到比例。</p>
+{% elif n == '4' %}<img src="{{ g.images.aggregation }}" alt="{{ g.asset_id }} {{ g.path_id }} 多尺度峰度与分位数距离">
+<div class="table-wrap"><table><tr><th>基础间隔倍数</th><th>收益数</th><th>超额峰度</th><th>分位数距离</th></tr>{% for s in g.aggregation.scales %}<tr><td>{{ s.factor }}</td><td>{{ s.n }}</td><td>{{ s.excess_kurtosis|number }}</td><td>{{ s.normal_quantile_rmse|number }}</td></tr>{% endfor %}</table></div>
+{% elif n == '5' %}<img src="{{ g.images.intermittency }}" alt="{{ g.asset_id }} {{ g.path_id }} 滚动 RMS"><p class="caption">后向窗口：{{ config.rms_window }} 个基础收益。</p>
+{% elif n == '6' %}<img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益、绝对收益和平方收益自相关"><p class="caption">左：收益。中：绝对收益。右：平方收益。阴影是固定带宽 {{ g.dependence_uncertainty.plot_bandwidth }} 的单项 95% HAC 区间；总览采用全部带宽的 Bonferroni 校正区间。</p>
+{% elif n == '7' %}{% for s in g.conditional_tails.segments %}{% if s.status == 'computed' %}<h3>连续段 {{ s.segment }}</h3><p class="caption">{{ s.start[:10] }} — {{ s.end[:10] }} · 同范围 {{ s.n_evaluated }} 条收益</p>
+<p>超额峰度：原始 {{ s.raw_distribution.excess_kurtosis|number }} → 标准化残差 {{ s.residual_distribution.excess_kurtosis|number }}。</p>
+<img src="{{ g.images[s.figure_key] }}" alt="{{ g.asset_id }} {{ g.path_id }} 第 {{ s.segment }} 段 GARCH 前后分布与平方收益 ACF">{% endif %}{% endfor %}
+{% elif n == '8' %}<img src="{{ g.images.persistence }}" alt="{{ g.asset_id }} {{ g.path_id }} 长范围与分段绝对收益 ACF"><p class="caption">左：全路径。右：{{ config.stability_blocks }} 个时间分段分别计算。</p>
+{% elif n == '9' %}<img src="{{ g.images.leverage }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益与前后波动相关"><p class="caption">正滞后表示收益在前、波动在后。</p>
+{% elif n == '10' %}{% if g.images.volume is defined %}<img src="{{ g.images.volume }}" alt="{{ g.asset_id }} {{ g.path_id }} 成交量分组与绝对收益"><p class="caption">成交量单位：{{ g.volume_volatility.unit }}。</p>{% endif %}
+{% elif n == '11' %}<img src="{{ g.images.timescale }}" alt="{{ g.asset_id }} {{ g.path_id }} 粗细波动先后关系"><p class="caption">一步为 {{ config.coarse_factor }} 个基础间隔。方向差 = 细在前相关 − 粗在前相关。</p>
+{% endif %}</section>{% endfor %}
 </article>{% endfor %}
-<details><summary>11 项事实的实现范围</summary><table><tr><th>事实</th><th>当前状态</th></tr>{% for item in result.coverage %}<tr><td>{{ item.fact_id }}. {{ item.name }}</td><td>已提供描述诊断；部分统计量有近似区间，尚无统一的通过/失败检验</td></tr>{% endfor %}</table></details>
-<details><summary>数据与版本记录</summary><p>输入：{{ result.provenance.input_name }}；库版本：{{ result.provenance.package_version }}。</p><p>输入 SHA256：<code>{{ result.provenance.input_sha256 }}</code></p><p>程序与模板 SHA256：<code>{{ result.provenance.source_sha256 }}</code></p><p>时间均显示为 UTC；按日期分段时使用 {{ config.timezone or 'UTC' }}。同目录的 results.json 保存完整配置和软件版本，summary.csv 保存逐路径摘要。HTML 中已嵌入全部图片，可单独打开。</p></details>
-<footer>这是描述性研究报告，不代表对任何市场事实的统一通过/失败判断。生成时间（UTC）：{{ result.created_at }}</footer>
+<footer>Financial Stylized Facts {{ result.provenance.package_version }} · 评估规则 v{{ result.assessment_rule_version }}<br>
+数值与配置：results.json · 逐项结论：assessment.csv · <a href="https://github.com/dingv/financial-stylized-facts/blob/main/docs/learning-guide.md">指标与结果解读</a><br>
+生成时间（UTC）：{{ result.created_at }} · 输入：{{ result.provenance.input_name }}<br>SHA256：{{ result.provenance.input_sha256 }}</footer>
 </main><script>
 document.getElementById('path-select').addEventListener('change',function(){document.querySelectorAll('.path').forEach(function(p){p.hidden=p.id!==this.value},this)});
 </script></body></html>

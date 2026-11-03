@@ -86,7 +86,7 @@ def main(argv=None):
     analyze.add_argument("--long-memory-min-points", type=int, default=512)
     analyze.add_argument("--long-memory-max-windows", type=int, default=128)
     analyze.add_argument("--long-memory-max-work", type=int, default=20000000)
-    analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
+    analyze.add_argument("--title", default="金融市场 · 统计评估报告")
     args = parser.parse_args(argv)
     try:
         if args.command == "demo":
