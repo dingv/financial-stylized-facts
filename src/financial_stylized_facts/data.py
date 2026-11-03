@@ -1,7 +1,7 @@
 """Explicit time sampling; never join returns across missing grid points."""
 from dataclasses import dataclass
 from pathlib import Path
-from numbers import Integral
+from numbers import Integral, Real
 
 import numpy as np
 import pandas as pd
@@ -43,8 +43,24 @@ class AnalysisConfig:
     inference_min_pairs: int = 200
     hac_bandwidths: tuple[int, ...] = (10, 20, 40)
     inference_max_work: int = 100000000
+    first_passage: str = "on"
+    first_passage_horizon: int = 20
+    first_passage_thresholds: tuple[float, ...] = (1., 2., 3.)
+    first_passage_unit: str = "sigma"
+    first_passage_min_starts: int = 20
+    first_passage_max_work: int = 20000000
 
     def validate(self):
+        for name in ["first_passage_horizon", "first_passage_min_starts", "first_passage_max_work"]:
+            if isinstance(getattr(self,name),bool) or not isinstance(getattr(self,name),Integral):
+                raise ValueError(f"{name} 必须为整数")
+        if self.first_passage not in {"on","off"} or self.first_passage_unit not in {"sigma","log_return"}:
+            raise ValueError("first_passage 为 on/off，first_passage_unit 为 sigma/log_return")
+        if not 1<=self.first_passage_horizon<=2000 or self.first_passage_min_starts<2 or self.first_passage_max_work<1:
+            raise ValueError("首达时间 horizon 为 1–2000，最少起点数至少 2，工作量上限为正")
+        thresholds = self.first_passage_thresholds
+        if not isinstance(thresholds,(list,tuple)) or not thresholds or len(thresholds)>4 or any(isinstance(x,bool) or not isinstance(x,Real) or not np.isfinite(x) or x<=0 for x in thresholds) or list(thresholds)!=sorted(set(thresholds)):
+            raise ValueError("首达阈值必须为有限正数、严格递增，最多 4 项")
         if not isinstance(self.allow_missing_prices, bool):
             raise ValueError("allow_missing_prices 必须为布尔值")
         for name in ["max_lag", "min_pairs", "max_grid_points", "rms_window", "volatility_max_lag", "stability_blocks", "coarse_factor", "garch_min_points", "garch_max_points", "garch_max_segments", "garch_max_iter", "garch_burn", "bootstrap_reps", "bootstrap_seed", "bootstrap_max_work", "inference_max_lag", "inference_min_pairs", "inference_max_work"]:

@@ -26,6 +26,7 @@ from .activity import activity_diagnostics
 from .conditional import conditional_diagnostics
 from .uncertainty import uncertainty_diagnostics
 from .inference import dependence_uncertainty
+from .first_passage import first_passage_diagnostics
 from .findings import summarize, lag_label, human_timestamp
 
 
@@ -175,6 +176,38 @@ def _plots(sampled, metrics, acfs, inference, config, directory, group_id):
 
 def _fmt(value):
     return "不可计算" if value is None else f"{value:.4g}"
+
+
+def _first_passage_plot(result, config, directory, group_id):
+    thresholds = result["thresholds"]
+    fig = _figure(height=3.5)
+    axes = np.atleast_1d(fig.subplots(1,max(1,len(thresholds)),sharey=True))
+    if config.sampling == "grid":
+        seconds = pd.Timedelta(config.frequency).total_seconds()
+        divisor,unit = (86400,"days") if seconds>=86400 else (3600,"hours") if seconds>=3600 else (60,"min") if seconds>=60 else (1,"seconds")
+        factor,xlabel = seconds/divisor,f"Elapsed time ({unit})"
+    else:
+        factor,xlabel = 1.,"Elapsed observations"
+    for ax,row in zip(axes,thresholds):
+        for direction,label,color in [("up","Gain", "#2563a6"),("down","Loss", "#c77d55")]:
+            values = row[direction]["curve"]
+            if row[direction]["full_hit_probability"] is not None:
+                ax.step([0]+[r["horizon"]*factor for r in values], [0]+[r["full_cdf"] for r in values],
+                        where="post",label=label,color=color,linewidth=1.7)
+        if ax.lines:
+            ax.legend(frameon=False,fontsize=8)
+        else:
+            ax.text(.5,.5,"Too few full-window starts",transform=ax.transAxes,ha="center",fontsize=8)
+        unit = "sigma" if config.first_passage_unit=="sigma" else "log return"
+        ax.set_title(f"+/- {row['configured_threshold']:g} {unit}",fontsize=11)
+    if not thresholds:
+        axes[0].text(.5,.5,"First passage unavailable; see explanation",transform=axes[0].transAxes,ha="center",fontsize=9)
+    for ax in axes:
+        ax.set(xlabel=xlabel,ylim=(0,1.03))
+        _style(ax)
+    axes[0].set_ylabel("Fraction reaching threshold")
+    path = f"figures/{group_id}-first-passage.png"
+    return {"first_passage":path},{"first_passage":_save(fig,directory/path)}
 
 
 def _conditional_plots(result, arrays, config, directory, group_id):
@@ -415,6 +448,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         diagnostics, rms = analyze_diagnostics(sampled, config)
         diagnostics.update(dependence_diagnostics(sampled, config))
         diagnostics.update(activity_diagnostics(sampled, config))
+        diagnostics["first_passage"] = first_passage_diagnostics(sampled, config)
         conditional, residual_arrays = conditional_diagnostics(sampled, config)
         diagnostics["conditional_tails"] = conditional
         diagnostics["uncertainty"] = uncertainty_diagnostics(sampled, config, seed_key=str(asset)+"\0"+str(path))
@@ -432,7 +466,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / "figures").mkdir()
     result = {
-        "schema_version": "0.9", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "0.10", "title": title, "created_at": datetime.now(timezone.utc).isoformat(),
         "config": asdict(config),
         "data_source": source_provenance,
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
@@ -454,11 +488,15 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     conditional_rows = []
     uncertainty_rows = []
     dependence_rows = []
+    first_passage_rows = []
     observation_rows = []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, diagnostics["dependence_uncertainty"], config, output_dir, group_id)
         new_paths, new_images = _diagnostic_plots(sampled, diagnostics, rms, config, output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
+        new_paths,new_images = _first_passage_plot(diagnostics["first_passage"],config,output_dir,group_id)
         paths.update(new_paths)
         embedded.update(new_images)
         new_paths, new_images = _dependence_plots(diagnostics, config, output_dir, group_id)
@@ -486,6 +524,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
         if quality["duplicate_rows_last_wins"]:
             warnings.append("同时间的多条价格按 CSV 原始行顺序取最后一条。")
         views.append({**item, "images": embedded, "id": group_id, "warnings": warnings,
+                      "passage_window":lag_label(config,config.first_passage_horizon),
                       "range_label": human_timestamp(quality["start"], config)+" — "+human_timestamp(quality["end"], config)})
         summary_rows.append({"asset_id": asset, "path_id": path, **quality, **{k: metrics[k] for k in ["mean", "std", "zero_fraction", "excess_kurtosis", "status", "reason"]}})
         summary_rows[-1].update(skewness=diagnostics["asymmetry"]["skewness"],
@@ -501,6 +540,16 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
                                    "separation_seconds": row["lag"]*asym["factor"]*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None,
                                    "observation_unit": config.observation_unit, **row})
         conditional = diagnostics["conditional_tails"]
+        for threshold in diagnostics["first_passage"]["thresholds"]:
+            for direction in ["up","down"]:
+                stats = threshold[direction]
+                for row in stats["curve"]:
+                    first_passage_rows.append({"asset_id":asset,"path_id":path,"direction":direction,
+                        "configured_threshold":threshold["configured_threshold"],"threshold_unit":config.first_passage_unit,
+                        "log_threshold":threshold["log_threshold"],"all_starts":stats["all_starts"],
+                        "full_horizon_starts":stats["full_horizon_starts"],"configured_horizon":config.first_passage_horizon,
+                        "elapsed_seconds":row["horizon"]*pd.Timedelta(config.frequency).total_seconds() if config.sampling=="grid" else None,
+                        "observation_unit":config.observation_unit,**row})
         for row in diagnostics["dependence_uncertainty"]["rows"]:
             factor = config.coarse_factor if row["family"] == "timescale" else 1
             seconds = factor*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None
@@ -551,6 +600,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 基�
     pd.DataFrame(conditional_rows, columns=["asset_id", "path_id", "segment", "session_id", "start", "end", "n", "status", "reason", "n_evaluated", "optimizer_status", "raw_excess_kurtosis", "residual_excess_kurtosis", "mu", "omega", "alpha", "beta", "persistence", "flags"]).to_csv(output_dir/"conditional.csv", index=False)
     pd.DataFrame(uncertainty_rows, columns=["asset_id", "path_id", "block_length", "metric", "estimate", "lower", "upper", "bootstrap_se", "confidence_level", "valid_reps", "seed", "status", "reason"]).to_csv(output_dir/"uncertainty.csv", index=False)
     pd.DataFrame(dependence_rows, columns=["asset_id", "path_id", "family", "proxy", "lag", "bandwidth", "lag_seconds", "bandwidth_seconds", "base_observations_per_slot", "observation_unit", "estimate", "pair_count", "standard_error", "lower", "upper", "familywise_lower", "familywise_upper", "status", "reason"]).to_csv(output_dir/"dependence_intervals.csv", index=False)
+    pd.DataFrame(first_passage_rows,columns=["asset_id","path_id","direction","configured_threshold","threshold_unit","log_threshold","all_starts","full_horizon_starts","configured_horizon","horizon","elapsed_seconds","observation_unit","full_hits","full_cdf","observed_hits","early_censored","all_start_lower_bound","all_start_upper_bound"]).to_csv(output_dir/"first_passage.csv",index=False)
     pd.DataFrame(leverage_rows, columns=["asset_id", "path_id", "proxy", "lag", "lag_seconds", "observation_unit", "correlation", "pair_count", "status"]).to_csv(output_dir / "leverage.csv", index=False)
     pd.DataFrame(persistence_rows, columns=["asset_id", "path_id", "period", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "volatility_acf.csv", index=False)
     pd.DataFrame(acf_rows, columns=["asset_id", "path_id", "series", "lag", "lag_seconds", "observation_unit", "acf", "pair_count"]).to_csv(output_dir / "acf.csv", index=False)

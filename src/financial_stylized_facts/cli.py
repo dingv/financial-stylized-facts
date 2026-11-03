@@ -70,6 +70,12 @@ def main(argv=None):
     analyze.add_argument("--inference-min-pairs", type=int, default=200)
     analyze.add_argument("--hac-bandwidths", type=int, nargs="+", default=[10,20,40], help="Bartlett 带宽；第一项用于图，其他项保留作对照")
     analyze.add_argument("--inference-max-work", type=int, default=100000000)
+    analyze.add_argument("--first-passage", choices=["on","off"], default="on")
+    analyze.add_argument("--first-passage-horizon", type=int, default=20)
+    analyze.add_argument("--first-passage-thresholds", type=float, nargs="+", default=[1.,2.,3.])
+    analyze.add_argument("--first-passage-unit", choices=["sigma","log_return"], default="sigma")
+    analyze.add_argument("--first-passage-min-starts", type=int, default=20)
+    analyze.add_argument("--first-passage-max-work", type=int, default=20000000)
     analyze.add_argument("--title", default="金融市场 · 基础统计诊断")
     args = parser.parse_args(argv)
     try:

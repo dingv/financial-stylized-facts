@@ -32,7 +32,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     text = (out / "index.html").read_text()
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
-    assert text.count("data:image/png;base64,") == 18
+    assert text.count("data:image/png;base64,") == 20
     assert "path-select" in text and "正式统计检验仍待补齐" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
@@ -44,7 +44,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert "这条路径先看三件事" in text
     assert all(len(g["findings"]["by_fact"]) == 11 for g in result["groups"])
     assert result["groups"][0]["findings"]["by_fact"]["2"]["status"] == "zero_variance"
-    assert len(list((out / "figures").glob("*.png"))) == 18
+    assert len(list((out / "figures").glob("*.png"))) == 20
     assert len(pd.read_csv(out / "scales.csv")) == 8
     assert result["groups"][1]["aggregation"]["scales"][1]["n"] == 16
     assert all(x["status"] == "descriptive_only" for x in result["coverage"][:6])
@@ -97,7 +97,7 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert len(result["groups"][0]["volatility_persistence"]["blocks"]) == 3
     assert result["groups"][0]["volume_volatility"]["n"] == 60
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
-    assert (out/"index.html").read_text().count("data:image/png;base64,") == 10
+    assert (out/"index.html").read_text().count("data:image/png;base64,") == 11
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
 
 
@@ -126,7 +126,12 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
-    assert text.count("data:image/png;base64,") == 10
+    assert text.count("data:image/png;base64,") == 11
+    fp = pd.read_csv(out/"first_passage.csv")
+    assert len(fp) == 120 and set(fp.direction) == {"up","down"}
+    assert fp.elapsed_seconds.iloc[-1] == 1200
+    assert result["groups"][0]["first_passage"]["full_horizon_starts"] == 681
+    assert "不是置信区间" in text and "达到相同涨跌幅" in text
     dependence = pd.read_csv(out/"dependence_intervals.csv")
     assert len(dependence) == 240
     computed = dependence[dependence.status == "computed"]

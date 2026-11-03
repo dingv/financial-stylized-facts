@@ -38,7 +38,7 @@ r_t = log(P_t) - log(P_{t-Δ})，默认非重叠。日频的“一个 lag”可�
 
 涨跌不对称：修正 Fisher-Pearson 偏度，调用 [SciPy skew](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skew.html) 的 bias=False，至少 3 条有效非恒定收益。原始收益的 1%、5%、50%、95%、99% 分位数采用 [NumPy quantile](https://numpy.org/doc/stable/reference/generated/numpy.quantile.html) 的 linear 方法。左右尾围绕全路径均值、使用 ddof=0 标准差，以全部有效收益作分母，分别计数 z<-k、z>k，k=1、2、3。分位数与尾部计数是不同定义，不能将均值中心化后的左尾直接称为实际亏损概率。
 
-连续严格同号收益构成一段，零收益、变号、NaN 与 session 边界断段。段累计值为对数收益之和；不是峰谷最大回撤。相邻边界为缺口或 session 起止时，标记为截断；原始段数包含截断段，幅度中位数、95% 分位数与平均长度只用两端完整观察到的段。这一选择也可能影响长段样本，因此不作为完整 gain/loss asymmetry 的统一检验，首达时间仍待扩展。
+连续严格同号收益构成一段，零收益、变号、NaN 与 session 边界断段。段累计值为对数收益之和；不是峰谷最大回撤。相邻边界为缺口或 session 起止时，标记为截断；原始段数包含截断段，幅度中位数、95% 分位数与平均长度只用两端完整观察到的段。这一选择也可能影响长段样本，因此不作为完整 gain/loss asymmetry 的统一检验。0.10 另提供[首达时间和连续片段内回撤/回升](first-passage.md)，保留截断计数及共同完整观察窗口。
 
 多尺度：去除每个 session 首价差分产生的结构性 NaN 后，从首个收益槽起固定分成 m 个观测一块，m 默认 1、5、10、20。保留块内数据缺失的位置，有任一 NaN 则整块无效；不重排或滑动凑完整块。每段末尾不足 m 个的收益槽舍弃，并报告数量。有效块值为对数收益之和，等于完整价格路径的端点对数差。各尺度独立估计修正超额峰度；独立以均值、ddof=0 标准差标准化，计算 0.01、0.02、…、0.99 分位数与标准正态对应分位数的 RMSE。该距离是项目的描述指标，忽略比 1%/99% 更远的尾部；没有有限样本校准或 p 值。N<100 提示小样本，N<4 或零方差不计算峰度/分位数距离，不用“不显著”代替高斯化证据。
 
@@ -60,7 +60,7 @@ N(k)<min_pairs 时为 insufficient_pairs；配对方差小于或等于 64*机器
 
 ## 结果与验证
 
-当前结果 schema_version=0.9。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
+当前结果 schema_version=0.10。顶层包含 config、provenance、coverage 和 groups；每组含 asset_id、path_id、quality、distribution、acf、density、figures、asymmetry、aggregation、intermittency，以及 leverage、volatility_persistence、volume_volatility、timescale_asymmetry、conditional_tails、uncertainty、dependence_uncertainty、first_passage、findings。指标内记录状态、定义和样本数；ACF 另有 lags、values、pair_counts。coverage 的全部 11 项标 descriptive_only；每路径条件厚尾另记录是否启用、依赖缺失和拟合状态；第 8 项并不代表已做长记忆检验。JSON 不输出 NaN/Infinity，不可计算数值为 null 并附原因。输入及 Python/模板源码 SHA256、依赖版本随结果保存；不把本地绝对数据路径写进报告。scales.csv、leverage.csv、volatility_acf.csv、volume.csv、timescale.csv、conditional.csv、uncertainty.csv、dependence_intervals.csv、first_passage.csv、observations.csv 逐组导出结果；不持久化逐点 RMS 或全部涨跌段，原输入和配置可重建。
 
 输入校验、指标可计算状态和科学证据强弱分别记录。统计相关不作投资预测保证；缺少证据与反向证据不混同。
 

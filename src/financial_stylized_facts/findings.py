@@ -101,7 +101,7 @@ def summarize(group, config, sampled):
     if asym["tails"]:
         tail = next(t for t in asym["tails"] if t["sigma"] == 3)
         text += f" 均值两侧超过 3 个标准差的变化分别有 {tail['left_count']} 条（左侧）、{tail['right_count']} 条（右侧）。"
-    add(3, asym["status"], text, "左右尾围绕样本均值比较；不是上涨概率，也不是达到相同涨跌幅所需时间的检验。", ["asymmetry"])
+    add(3, asym["status"], text, "左右尾围绕样本均值比较；不是上涨概率。首达时间另比较固定阈值和观察窗口，不把两种问题混同。", ["asymmetry"])
 
     scales = group["aggregation"]["scales"]
     first, last = scales[0], scales[-1]
