@@ -56,7 +56,7 @@ def _save(fig, path):
 
 def _align_inference(inference, acfs, diagnostics):
     """Respect the report's numerical availability gates and verify estimands."""
-    for row in inference["rows"]:
+    for row in inference["rows"] + inference.get("primary_rows", []):
         if row["family"] == "acf":
             estimate = acfs[row["proxy"]]
             values = dict(zip(estimate["lags"], estimate["values"]))
@@ -68,7 +68,8 @@ def _align_inference(inference, acfs, diagnostics):
         expected = values.get(row["lag"])
         if expected is None:
             row.update(estimate=None, status="not_computable", reason="对应报告点估计不可计算；不对缺失点另作推断",
-                       standard_error=None, lower=None, upper=None, familywise_lower=None, familywise_upper=None)
+                       standard_error=None, lower=None, upper=None, familywise_lower=None, familywise_upper=None,
+                       p_value=None, adjusted_p=None, reject=False)
         elif row["estimate"] is not None and not np.isclose(row["estimate"],expected,rtol=1e-7,atol=1e-9):
             raise ValueError("HAC 与报告点估计不一致，停止生成推断报告")
     if inference["rows"]:
@@ -80,8 +81,9 @@ def _align_inference(inference, acfs, diagnostics):
 
 def _inference_band(ax, inference, family, proxy, factor, color="#2563a6"):
     """Show the predeclared primary bandwidth only; unavailable rows stay gaps."""
-    rows = [r for r in inference["rows"] if r["family"] == family and r["proxy"] == proxy
-            and r["bandwidth"] == inference["plot_bandwidth"]]
+    primary = "primary_rows" in inference
+    rows = [r for r in inference.get("primary_rows", inference["rows"]) if r["family"] == family and r["proxy"] == proxy
+            and (primary or r["bandwidth"] == inference["plot_bandwidth"])]
     if not any(r["status"] == "computed" for r in rows):
         return
     # Separate signs: do not draw a band across the omitted lag zero.
@@ -101,7 +103,8 @@ def _inference_band(ax, inference, family, proxy, factor, color="#2563a6"):
             ax.errorbar([0], [row["estimate"]],
                         yerr=[[row["estimate"]-row["lower"]], [row["upper"]-row["estimate"]]],
                         fmt="o", markersize=3, color=color, alpha=.6, linewidth=.7)
-    ax.text(.98, .98, f"95% pointwise HAC (B={inference['plot_bandwidth']})",
+    label = "95% pointwise HAC (size-based B)" if primary else f"95% pointwise HAC (B={inference['plot_bandwidth']})"
+    ax.text(.98, .98, label,
             transform=ax.transAxes, ha="right", va="top", fontsize=7)
 
 
@@ -562,7 +565,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
             estimate["uncertainty"] = {"reference": "group.dependence_uncertainty", "family":"leverage", "proxy":proxy, "scope":"仅指定非零滞后"}
         diagnostics["timescale_asymmetry"]["uncertainty"] = {"reference":"group.dependence_uncertainty", "family":"timescale", "scope":"仅指定早期滞后的方向差值，含两向协方差"}
         metrics["uncertainty"] = {"status": diagnostics["uncertainty"]["status"], "reference": "group.uncertainty", "reason": diagnostics["uncertainty"]["reason"]}
-        diagnostics["asymmetry"]["uncertainty"] = {**metrics["uncertainty"], "metrics": ["skewness"], "scope": "偏度的近似区间，不覆盖涨跌段或首达时间"}
+        diagnostics["asymmetry"]["uncertainty"] = {**metrics["uncertainty"], "metrics": ["skewness", "quantile_skewness"], "scope": "分位数偏度主检验、普通偏度对照"}
         diagnostics["volume_volatility"]["uncertainty"] = {**metrics["uncertainty"], "metrics": ["volume_abs_pearson", "volume_abs_spearman", "volume_squared_pearson"], "scope": "仅已声明的量与收益联合重采样，不覆盖季节性调整"} if config.volume_kind == "interval" else {"status": "not_applicable", "reason": "未提供成交量"}
         groups.append((str(asset), str(path), sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays))
     output_dir.mkdir(parents=True, exist_ok=False)
@@ -590,7 +593,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     volume_lag_rows, volume_lag_interval_rows = [], []
     conditional_rows = []
     uncertainty_rows = []
-    dependence_rows = []
+    dependence_rows, primary_dependence_rows = [], []
     first_passage_rows = []
     long_memory_rows = []
     observation_rows = []
@@ -709,6 +712,13 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
                                     "lag_seconds":row["lag"]*seconds if seconds is not None else None,
                                     "bandwidth_seconds":row["bandwidth"]*seconds if seconds is not None else None,
                                     "base_observations_per_slot":factor, "observation_unit":config.observation_unit})
+        for row in diagnostics["dependence_uncertainty"].get("primary_rows", []):
+            factor = config.coarse_factor if row["family"] == "timescale" else 1
+            seconds = factor*pd.Timedelta(config.frequency).total_seconds() if config.sampling == "grid" else None
+            primary_dependence_rows.append({"asset_id":asset, "path_id":path, **row,
+                                    "lag_seconds":row["lag"]*seconds if seconds is not None else None,
+                                    "bandwidth_seconds":row["bandwidth"]*seconds if seconds is not None else None,
+                                    "base_observations_per_slot":factor, "observation_unit":config.observation_unit})
         for block in diagnostics["uncertainty"]["blocks"]:
             for row in block["intervals"]:
                 uncertainty_rows.append({"asset_id": asset, "path_id": path, "block_length": block["block_length"],
@@ -758,6 +768,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     pd.DataFrame(timescale_rows, columns=["asset_id", "path_id", "coarse_factor", "lag", "separation_seconds", "observation_unit", "fine_leads_coarse", "coarse_leads_fine", "difference", "forward_pairs", "reverse_pairs"]).to_csv(output_dir/"timescale.csv", index=False)
     pd.DataFrame(conditional_rows, columns=["asset_id", "path_id", "segment", "session_id", "start", "end", "n", "status", "reason", "n_evaluated", "optimizer_status", "raw_excess_kurtosis", "residual_excess_kurtosis", "mu", "omega", "alpha", "beta", "persistence", "flags"]).to_csv(output_dir/"conditional.csv", index=False)
     pd.DataFrame(uncertainty_rows, columns=["asset_id", "path_id", "block_length", "metric", "estimate", "lower", "upper", "bootstrap_se", "confidence_level", "valid_reps", "seed", "status", "reason"]).to_csv(output_dir/"uncertainty.csv", index=False)
+    pd.DataFrame(primary_dependence_rows).to_csv(output_dir/"primary_dependence_intervals.csv", index=False)
     pd.DataFrame(dependence_rows, columns=["asset_id", "path_id", "family", "proxy", "lag", "bandwidth", "lag_seconds", "bandwidth_seconds", "base_observations_per_slot", "observation_unit", "estimate", "pair_count", "standard_error", "lower", "upper", "familywise_lower", "familywise_upper", "status", "reason"]).to_csv(output_dir/"dependence_intervals.csv", index=False)
     pd.DataFrame(first_passage_rows,columns=["asset_id","path_id","direction","configured_threshold","threshold_unit","log_threshold","all_starts","full_horizon_starts","configured_horizon","horizon","elapsed_seconds","observation_unit","full_hits","full_cdf","observed_hits","early_censored","all_start_lower_bound","all_start_upper_bound"]).to_csv(output_dir/"first_passage.csv",index=False)
     pd.DataFrame(long_memory_rows,columns=["asset_id","path_id","segment","session_id","partition","window","start","end","n","bandwidth","bandwidth_seconds","observation_unit","required_n","reference_only","statistic","asymptotic_p","p_is_numerical_upper_bound","planned_family_size","family_adjusted_p","reject_short_memory_family","position","status","reason"]).to_csv(output_dir/"long_memory.csv",index=False)

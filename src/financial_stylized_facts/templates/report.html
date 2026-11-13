@@ -33,6 +33,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 {% for n, a in g.assessment.by_fact.items() %}<section class="card" id="{{ g.id }}-fact-{{ n }}">
 <h2>{{ n }}. {{ a.name }}</h2><span class="badge {{ a.evidence_level }}">{{ a.label }} · {{ a.evidence_label }}</span>
 <p class="finding">{{ a.summary }}</p>
+{% if a.stability_summary %}<p class="caption">{{ a.stability_summary }}</p>{% endif %}
 {% if a.classical_alignment_label is defined %}<p><strong>{{ a.classical_alignment_label }}</strong></p>{% endif %}
 {% if a.metrics %}<div class="metrics">{% for m in a.metrics %}<div class="metric"><small>{{ m.label }}</small><div class="value">{{ m.value|number }}<small>{{ m.unit }}</small></div></div>{% endfor %}</div>{% endif %}
 {% for note in a.notes %}<div class="notice">{{ note }}</div>{% endfor %}
@@ -46,7 +47,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;p
 {% elif n == '4' %}<img src="{{ g.images.aggregation }}" alt="{{ g.asset_id }} {{ g.path_id }} 多尺度峰度与分位数距离">
 <div class="table-wrap"><table><tr><th>基础间隔倍数</th><th>收益数</th><th>超额峰度</th><th>分位数距离</th></tr>{% for s in g.aggregation.scales %}<tr><td>{{ s.factor }}</td><td>{{ s.n }}</td><td>{{ s.excess_kurtosis|number }}</td><td>{{ s.normal_quantile_rmse|number }}</td></tr>{% endfor %}</table></div>
 {% elif n == '5' %}<img src="{{ g.images.fano }}" alt="极端事件 Fano 与随机排列参照"><p class="caption">极端事件取绝对收益最高 {{ ((1-config.intermittency_quantile)*100)|number }}%；阴影为逐窗口随机参照，总览 p 值校正全部预设窗口。</p><img src="{{ g.images.intermittency }}" alt="{{ g.asset_id }} {{ g.path_id }} 滚动 RMS"><p class="caption">后向窗口：{{ config.rms_window }} 个基础收益。</p>
-{% elif n == '6' %}<img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益、绝对收益和平方收益自相关"><p class="caption">左：收益。中：绝对收益。右：平方收益。阴影是固定带宽 {{ g.dependence_uncertainty.plot_bandwidth }} 的单项 95% HAC 区间；总览采用全部带宽的 Bonferroni 校正区间。</p>
+{% elif n == '6' %}<img src="{{ g.images.acf }}" alt="{{ g.asset_id }} {{ g.path_id }} 收益、绝对收益和平方收益自相关"><p class="caption">左：收益。中：绝对收益。右：平方收益。阴影为主要设置的单项 95% HAC 区间；主要检验按每组预设滞后作 Holm 校正，其他带宽单独记录稳定性。</p>
 {% elif n == '7' %}{% for s in g.conditional_tails.segments %}{% if s.status == 'computed' %}<h3>连续段 {{ s.segment }}</h3><p class="caption">{{ s.start[:10] }} — {{ s.end[:10] }} · 同范围 {{ s.n_evaluated }} 条收益</p>
 <p>超额峰度：原始 {{ s.raw_distribution.excess_kurtosis|number }} → 标准化残差 {{ s.residual_distribution.excess_kurtosis|number }}。</p>
 {% if s.reference_test is defined and s.reference_test.status == 'computed' %}<p>高斯 GARCH 参照校正 p = {{ s.reference_test.family_adjusted_tail_p|number }}；成功重拟合 {{ s.reference_test.completed_reps }}/{{ s.reference_test.reps }} 次。</p><div class="table-wrap"><table><tr><th>残差指标</th><th>观测值</th><th>高斯参照 95% 范围</th><th>单项 p</th></tr>{% for t in s.reference_test.tests[:2] %}<tr><td>{{ '超额峰度' if t.metric == 'excess_kurtosis' else '超过 3σ 的比例' }}</td><td>{{ t.estimate|number }}</td><td>{{ t.null_lower|number }} — {{ t.null_upper|number }}</td><td>{{ t.p_value|number }}</td></tr>{% endfor %}</table></div>{% elif s.reference_test is defined %}<p class="caption">{{ s.reference_test.reason }}</p>{% endif %}

@@ -87,8 +87,10 @@ for group in result["groups"]:
               fact["label"], fact["evidence_level"], fact["metrics"])
 ```
 
-每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.16、评估规则版本 3 增加不对称的 `asymmetry_evidence`、`direction`、`classical_alignment`、`directional_basis` 字段，以及独立的量价滞后结果。与经典方向相反的有支持结果使用 `conclusion=opposite_direction`。已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
+每条记录包含 `conclusion`、`summary`、`metrics`、`evidence`、`rule_id` 和 `computation_status`。schema 0.16、评估规则版本 4 提供不对称的 `asymmetry_evidence`、`direction`、`classical_alignment`、`directional_basis` 字段，以及独立的量价滞后结果。与经典方向相反的有支持结果使用 `conclusion=opposite_direction`。已有数值字段及 `findings` 保留。详细规则见[教学文档](learning-guide.md)。
 
 三项证据输出：`intermittency.csv`（各窗口 Fano、校正 p、覆盖）、`conditional_inference.csv`（各段残差模拟参照和模型检查）、`decay_models.csv`（各时间段/范围的两模型参数、误差和偏好）。
 
 相关参数：`--intermittency-windows 10 30 60`、`--intermittency-quantile .99`、`--permutation-reps 999`、`--conditional-bootstrap-reps 199`。次数设为 0 可关闭相应随机参照。资源上限为 `--permutation-max-work 20000000`、`--conditional-bootstrap-max-work 2000000`，按每条路径分别计；完整原因保存在 JSON。
+
+主要相关检验明细见 `primary_dependence_intervals.csv`，包含实际带宽、配对数、样本门槛和 Holm 校正 p。第 3 项主要指标为分位数偏度，普通偏度保留；`inference_status` 区分已计算、部分计算和不可用，稳定性单独记录。方法及开源实现对照见[评估方法](assessment-methods.md)。

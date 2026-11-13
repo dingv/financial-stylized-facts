@@ -18,22 +18,22 @@ from financial_stylized_facts.assessment import assess
     (1, "opposite", "opposite_direction", "right_skew")])
 def test_skew_evidence_and_classical_direction_are_separate(sign, alignment, conclusion, direction):
     g,c = example()
-    g['asymmetry']['skewness'] = sign
-    boot(g,c,{'skewness':(-2,-.1) if sign < 0 else (.1,2)})
+    g['asymmetry']['quantile_skewness'] = sign
+    boot(g,c,{'quantile_skewness':(-2,-.1) if sign < 0 else (.1,2)})
     a = assess(g,c)['by_fact']['3']
     assert a['asymmetry_evidence'] == 'supported'
     assert a['direction'] == direction and a['classical_alignment'] == alignment
-    assert a['conclusion'] == conclusion and a['directional_basis'] == 'skewness_proxy'
+    assert a['conclusion'] == conclusion and a['directional_basis'] == 'quartile_skewness_proxy'
 
 
 def test_skew_point_direction_does_not_create_classical_support():
-    g,c = example(); g['asymmetry']['skewness'] = -1
-    boot(g,c,{'skewness':(-2,1)})
+    g,c = example(); g['asymmetry']['quantile_skewness'] = -1
+    boot(g,c,{'quantile_skewness':(-2,1)})
     a = assess(g,c)['by_fact']['3']
     assert a['direction'] == 'left_skew' and a['asymmetry_evidence'] == 'not_detected'
     assert a['classical_alignment'] == 'inconclusive'
-    g['uncertainty']['blocks'].pop()
-    assert assess(g,c)['by_fact']['3']['asymmetry_evidence'] == 'inconclusive'
+    g['uncertainty']['blocks'].pop(0)
+    assert assess(g,c)['by_fact']['3']['asymmetry_evidence'] == 'unavailable'
 
 
 @pytest.mark.parametrize("sign,alignment,direction", [

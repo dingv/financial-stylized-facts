@@ -10,10 +10,11 @@ from scipy.stats import rankdata
 
 from .conditional import continuous_segments
 from .activity import _pearson
+from .diagnostics import quantile_skewness
 
 
 NAMES = ["mean", "std", "skewness", "excess_kurtosis", "tail_probability_3sigma", "zero_fraction",
-         "volume_abs_pearson", "volume_abs_spearman", "volume_squared_pearson"]
+         "volume_abs_pearson", "volume_abs_spearman", "volume_squared_pearson", "quantile_skewness"]
 
 
 def circular_indices(n, block_length, rng):
@@ -41,6 +42,8 @@ def marginal_statistics(x, volume=None, min_pairs=20):
     out[2] = np.sqrt(n*(n-1))/(n-2)*np.mean(z**3)
     out[3] = (n-1)/((n-2)*(n-3))*((n+1)*(np.mean(z**4)-3)+6)
     out[4] = np.mean(np.abs(z) > 3)
+    robust = quantile_skewness(y)
+    out[9] = robust if robust is not None else np.nan
     if volume is not None:
         v = np.asarray(volume, dtype=float)
         valid = np.isfinite(v)
@@ -118,8 +121,8 @@ def uncertainty_diagnostics(sampled, config, seed_key=""):
             x = np.concatenate([s[ix] for s, ix in zip(segments, indices)])
             v = np.concatenate([s[ix] for s, ix in zip(volumes, indices)]) if volumes is not None else None
             draws[b] = marginal_statistics(x, v, config.min_pairs)
-        count = len(NAMES) if volumes is not None else 6
-        row["intervals"] = percentile_rows(draws[:, :count], estimates[:count], NAMES[:count])
+        columns = list(range(len(NAMES))) if volumes is not None else [0,1,2,3,4,5,9]
+        row["intervals"] = percentile_rows(draws[:, columns], estimates[columns], [NAMES[i] for i in columns])
         row.update(status="computed", reason=None)
         result["blocks"].append(row)
     available = sum(b["status"] == "computed" for b in result["blocks"])

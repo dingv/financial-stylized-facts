@@ -50,3 +50,5 @@ Coin Metrics 数据和相应衍生示例采用 CC BY-NC 4.0，来源署名见各
 期权权利金受到标的变化、隐含波动率与时间价值衰减共同影响，这组结果用于观察该合约的价格序列，不等同于标的市场或对冲策略收益。各频率结果分别解读。
 
 World Bank 样本采用 CC BY 4.0；Binance 样本和衍生报告采用 CC BY-NC-SA 4.0 及其数据条款；TAIFEX 每日行情采用台湾政府资料开放授权条款第 1 版。具体来源和转换步骤见[数据说明](../data/README.md)。
+
+主要相关检验的有效样本量、带宽、原始及 Holm 校正 p 值见各数据集的 `*-primary-dependence-intervals.csv`。方法对照与验证见[评估方法](../docs/assessment-methods.md)。

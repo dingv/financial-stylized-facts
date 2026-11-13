@@ -4,11 +4,51 @@ Influence contributions keep original observation slots and session edges.
 This is short-memory asymptotic inference, not a long-memory test. Missingness
 must be non-informative; separate sessions are treated as independent blocks.
 """
+from dataclasses import replace
 import numpy as np
 from scipy.stats import norm
 
 from .diagnostics import _arrays
 from .activity import coarse_fine_blocks
+
+
+def automatic_bandwidth(pairs, lag):
+    """statsmodels/Newey-West size rule, covering the tested overlap lag."""
+    return max(abs(lag), int(np.floor(4*(max(pairs, 1)/100.)**(2/9))))
+
+
+def primary_interval(estimate, scores, pairs, *, family, proxy, lag, config, bounds=(-1., 1.)):
+    bandwidth = automatic_bandwidth(pairs, lag)
+    row = interval_rows(estimate, scores, pairs, family=family, proxy=proxy, lag=lag,
+                        config=replace(config, hac_bandwidths=(bandwidth,)), bounds=bounds)[0]
+    row.update(role='primary', p_value=None, adjusted_p=None, reject=False,
+               required_pairs=max(config.min_pairs, config.inference_min_pairs, 20*(bandwidth+1)))
+    if row['status'] == 'computed':
+        row['p_value'] = float(2*norm.sf(abs(estimate/row['standard_error'])))
+    return row
+
+
+def holm_family(rows):
+    """Two-sided Holm FWER, retaining unavailable planned tests as p=1."""
+    m = len(rows)
+    order = sorted(range(m), key=lambda i: rows[i].get('p_value') if rows[i].get('p_value') is not None else 1.)
+    previous = 0.
+    for rank, i in enumerate(order):
+        row = rows[i]
+        p = row.get('p_value')
+        previous = max(previous, min(1., (m-rank)*(p if p is not None else 1.)))
+        row.update(adjustment='holm', planned_family_size=m,
+                   adjusted_p=float(previous) if p is not None else None,
+                   reject=bool(p is not None and previous <= .05))
+
+
+def finalize_primary(rows):
+    # Each predeclared proxy and time direction is its own family. Alternative
+    # proxies are reported separately, never searched to obtain a positive result.
+    keys = {(r['family'], r['proxy'], r['lag'] > 0) for r in rows}
+    for key in keys:
+        holm_family([r for r in rows if (r['family'], r['proxy'], r['lag'] > 0) == key])
+    return rows
 
 
 def _scaled(segments):
@@ -133,6 +173,7 @@ def dependence_uncertainty(sampled, config):
     result = {"status":"disabled","reason":"本次关闭时间依赖指标的近似区间",
               "method":"delta_bartlett_hac","confidence_level":.95,"small_sample_correction":False,
               "bandwidths":list(config.hac_bandwidths),"plot_bandwidth":config.hac_bandwidths[0],
+              "primary_rows":[], "primary_method":"newey_west_size_rule_holm_per_proxy_direction",
               "max_lag":min(config.inference_max_lag,config.max_lag),"rows":[],"family_size":0,
               "familywise_method":"Bonferroni normal intervals across all requested rows and bandwidths within one asset/path",
               "assumptions":"共同稳定矩、短记忆弱依赖和足够高阶矩；缺失非信息性，session 之间不估计协方差；不是长记忆检验",
@@ -142,24 +183,26 @@ def dependence_uncertainty(sampled, config):
     arrays = [g.log_return.to_numpy(float) for _,g in sampled.groupby("session_id",sort=False)]
     nslots = sum(map(len,arrays))
     limit = result["max_lag"]
-    work = nslots*limit*(7+1/config.coarse_factor)*(max(config.hac_bandwidths)+1)
+    work = nslots*limit*(7+1/config.coarse_factor)*(max(config.hac_bandwidths)+automatic_bandwidth(nslots,limit)+2)
     result["estimated_work"] = int(np.ceil(work))
     if work>config.inference_max_work:
         result.update(status="resource_limit",reason="HAC 工作量超过上限；未截短样本或删减配置")
         return result
     # Rescaling once before powers avoids overflow without changing correlations.
     arrays = _scaled(arrays)
-    rows = []
+    rows, primary = [], []
     for proxy,transform in [("return",lambda x:x),("absolute_return",np.abs),("squared_return",np.square)]:
         series = [transform(a) for a in arrays]
         for lag in range(1,limit+1):
             estimate,scores,pairs = acf_influence(series,lag)
             rows.extend(interval_rows(estimate,scores,pairs,family="acf",proxy=proxy,lag=lag,config=config))
+            primary.append(primary_interval(estimate,scores,pairs,family="acf",proxy=proxy,lag=lag,config=config))
     for proxy,transform in [("absolute",np.abs),("squared",np.square)]:
         series = [transform(a) for a in arrays]
         for lag in list(range(-limit,0))+list(range(1,limit+1)):
             estimate,scores,pairs = pearson_influence(arrays,series,lag)
             rows.extend(interval_rows(estimate,scores,pairs,family="leverage",proxy=proxy,lag=lag,config=config))
+            primary.append(primary_interval(estimate,scores,pairs,family="leverage",proxy=proxy,lag=lag,config=config))
     blocks,_ = coarse_fine_blocks([a[1:] for a in arrays],config.coarse_factor)
     coarse, fine = [c for c,f in blocks],[f for c,f in blocks]
     for lag in range(1,limit+1):
@@ -168,6 +211,7 @@ def dependence_uncertainty(sampled, config):
         estimate = forward-reverse if forward is not None and reverse is not None else None
         scores = [f-r for f,r in zip(sf,sr)] if estimate is not None else []
         rows.extend(interval_rows(estimate,scores,min(nf,nr),family="timescale",proxy="difference",lag=lag,config=config,bounds=(-2.,2.)))
+        primary.append(primary_interval(estimate,scores,min(nf,nr),family="timescale",proxy="difference",lag=lag,config=config,bounds=(-2.,2.)))
     m = len(rows)
     critical = float(norm.ppf(1-.05/(2*m))) if m else None
     for row in rows:
@@ -177,7 +221,7 @@ def dependence_uncertainty(sampled, config):
             row.update(familywise_lower=float(max(-bound,row["estimate"]-margin)),
                        familywise_upper=float(min(bound,row["estimate"]+margin)))
     available = sum(r["status"]=="computed" for r in rows)
-    result.update(rows=rows,family_size=m,familywise_critical_value=critical,
+    result.update(rows=rows,primary_rows=finalize_primary(primary),family_size=m,familywise_critical_value=critical,
                   status="computed" if available==len(rows) and rows else "partially_computed" if available else "not_computable",
                   reason=None if available else "没有满足样本、带宽和方差条件的区间；查看逐项原因")
     return result

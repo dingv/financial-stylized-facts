@@ -44,11 +44,23 @@ def signed_runs(segments):
     return runs
 
 
+def quantile_skewness(values):
+    """Bowley/Kim-White SK2, matching statsmodels robust_skewness[1]."""
+    x = np.asarray(values, dtype=float)
+    x = x[np.isfinite(x)]
+    if len(x) < 4:
+        return None
+    scale = float(np.max(abs(x))) or 1.
+    q1, median, q3 = np.quantile(x/scale, [.25,.5,.75], method='linear')
+    return float((q1+q3-2*median)/(q3-q1)) if q3>q1 else None
+
+
 def asymmetry(segments):
     arrays = _arrays(segments)
     x = _finite(arrays)
     result = {"status": "insufficient_data", "reason": "偏度至少需要 3 个有效收益", "n": len(x),
               "skewness": None, "estimator": "adjusted_fisher_pearson",
+              "quantile_skewness":quantile_skewness(x), "quantile_skewness_estimator":"bowley_kim_white_sk2",
               "quantile_method": "linear", "quantiles": {}, "tails": [], "runs": {},
               "uncertainty": {"status": "not_implemented"}}
     if len(x):

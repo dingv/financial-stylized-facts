@@ -164,7 +164,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert "excess_kurtosis" in set(intervals.metric)
     assert set(intervals.block_length) == {10, 20}
     assert result["groups"][0]["distribution"]["uncertainty"]["reference"] == "group.uncertainty"
-    assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness"]
+    assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness", "quantile_skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
     assert text.count("data:image/png;base64,") == 13
@@ -191,7 +191,13 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
             expected = g["timescale_asymmetry"]["differences"][row.lag-1]["difference"]
         assert row.estimate == pytest.approx(expected, abs=1e-12)
         assert row.lag_seconds == row.lag*(120 if row.family == "timescale" else 60)
-    assert "Bonferroni" in text and "ACF 尚未提供置信区间" not in text
+    assert "Holm" in text and "ACF 尚未提供置信区间" not in text
+    primary=pd.read_csv(out/"primary_dependence_intervals.csv")
+    assert len(primary)==80
+    assert set(primary.adjustment)=={'holm'}
+    assert set(primary.planned_family_size)=={10}
+    assert primary.loc[primary.status=='computed','adjusted_p'].between(0,1).all()
+
     assert g["leverage"]["squared"]["uncertainty"]["reference"] == "group.dependence_uncertainty"
     assert g["timescale_asymmetry"]["uncertainty"]["family"] == "timescale"
 

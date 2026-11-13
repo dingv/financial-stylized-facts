@@ -36,7 +36,7 @@ def test_moment_and_volume_estimates_match_scipy_with_missing_volume():
     assert out[7] == pytest.approx(stats.spearmanr(v[valid], abs(r[valid])).statistic)
     assert out[8] == pytest.approx(stats.pearsonr(v[valid], r[valid]**2).statistic)
     constant_volume = marginal_statistics(r, np.ones(len(r)))
-    assert np.isnan(constant_volume[6:]).all()
+    assert np.isnan(constant_volume[6:9]).all()
 
 
 def test_circular_indices_equal_arch_and_never_leave_segment():

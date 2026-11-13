@@ -1,15 +1,17 @@
-"""Versioned evidence summaries built from existing estimates, not a market score.
+"""Versioned assessments with predeclared primary evidence and sensitivity.
 
-No fitting, hypothesis selection, or data transformation happens here. Interval
-claims require the same sign across every configured sensitivity setting.
+Point estimates are unchanged; unavailable inference is recorded separately.
 """
 from math import erfc, sqrt
+from dataclasses import replace
+from scipy.stats import norm
+from .inference import holm_family
 
 from .decay import persistence_evidence
 
 from .findings import at_lag, lag_label, number
 
-RULE_VERSION = "3"
+RULE_VERSION = "4"
 NORMAL_TAIL_3 = erfc(3 / sqrt(2))
 FACT_NAMES = ["收益线性相关较弱", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集",
               "条件厚尾", "波动相关缓慢衰减", "杠杆效应", "成交量与波动相关", "时间尺度不对称"]
@@ -33,6 +35,8 @@ def block_evidence(group, config, metric, reference=0.):
 
 def lag_evidence(group, config, family, proxy):
     """Bonferroni intervals, positive lags, all predeclared HAC bandwidths."""
+    if 'primary_rows' in group['dependence_uncertainty']:
+        return primary_lag_evidence(group, config, family, proxy)
     maximum = min(config.inference_max_lag, config.max_lag)
     all_rows = group["dependence_uncertainty"]["rows"]
     results = []
@@ -55,6 +59,54 @@ def lag_evidence(group, config, family, proxy):
             "requested_lags": maximum, "bandwidths": list(config.hac_bandwidths)}
 
 
+def primary_lag_evidence(group, config, family, proxy):
+    """One size-based bandwidth per lag; other bandwidths describe stability."""
+    inference = group['dependence_uncertainty']
+    maximum = min(config.inference_max_lag, config.max_lag)
+    by_lag = {r['lag']: r for r in inference['primary_rows']
+              if r['family']==family and r['proxy']==proxy and r['lag']>0}
+    sensitivity = []
+    for b in config.hac_bandwidths:
+        selected = []
+        for lag in range(1,maximum+1):
+            source = next((r for r in inference['rows'] if r['family']==family and r['proxy']==proxy
+                           and r['lag']==lag and r['bandwidth']==b), {})
+            r = dict(source)
+            se = r.get('standard_error')
+            r['p_value'] = float(2*norm.sf(abs(r['estimate']/se))) if r.get('status')=='computed' and se else None
+            selected.append(r)
+        holm_family(selected)
+        sensitivity.append({'bandwidth':b, 'computed_lags':sum(r.get('status')=='computed' for r in selected),
+                            'positive_lags':[i+1 for i,r in enumerate(selected) if r['reject'] and r['estimate']>0],
+                            'negative_lags':[i+1 for i,r in enumerate(selected) if r['reject'] and r['estimate']<0]})
+    rows = []
+    for lag in range(1,maximum+1):
+        r = by_lag.get(lag,{})
+        complete = r.get('status')=='computed'
+        positive = bool(complete and r['reject'] and r['estimate']>0)
+        negative = bool(complete and r['reject'] and r['estimate']<0)
+        rows.append({**r, 'lag':lag, 'complete':complete, 'positive':positive, 'negative':negative,
+                     'sensitivity':any((lag in s['positive_lags'])!=positive or (lag in s['negative_lags'])!=negative
+                                       for s in sensitivity if s['computed_lags']==maximum)})
+    count = sum(r['complete'] for r in rows)
+    return {'lags':rows, 'positive_lags':[r['lag'] for r in rows if r['positive']],
+            'negative_lags':[r['lag'] for r in rows if r['negative']],
+            'sensitive_lags':[r['lag'] for r in rows if r['sensitivity']],
+            'complete':count==maximum, 'computed_lags':count, 'requested_lags':maximum,
+            'inference_status':'computed' if count==maximum else 'partial' if count else 'unavailable',
+            'reason':None if count==maximum else inference.get('reason') or '部分预设滞后未满足样本或方差条件',
+            'bandwidths':[r.get('bandwidth') for r in rows], 'sensitivity':sensitivity,
+            'method':'primary_size_based_hac_holm', 'family_scope':f'{family}/{proxy}/positive_lags'}
+
+
+def primary_skew_evidence(group, config):
+    primary = config.bootstrap_block_lengths[0]
+    e = block_evidence(group, replace(config,bootstrap_block_lengths=(primary,)), 'quantile_skewness')
+    e.update(primary_block_length=primary, sensitivity=block_evidence(group,config,'quantile_skewness'),
+             inference_status='computed' if e['complete'] else 'unavailable')
+    return e
+
+
 def metric(label, value, unit=""):
     return {"label": label, "value": value, "unit": unit}
 
@@ -75,9 +127,9 @@ def add_directional_assessments(rows, config):
     """Interpret the existing estimates and intervals; never infer absence from p>.05."""
     for i in ("3", "11"):
         row = rows[i]
-        if row["evidence_level"] == "unavailable":
+        if row["evidence_level"] == "unavailable" or row.get("inference_status")=="unavailable":
             _directional_result(row, "unavailable", "undetermined", "not_evaluated",
-                                "skewness_proxy" if i == "3" else "coarse_fine_correlation_difference")
+                                "quartile_skewness_proxy" if i == "3" else "coarse_fine_correlation_difference")
             continue
         e = row["evidence"]
         if i == "3":
@@ -87,8 +139,8 @@ def add_directional_assessments(rows, config):
             all_zero = e["complete"] and all(r["lower"] <= 0 <= r["upper"] for r in e["intervals"])
             state = "supported" if supported else "not_detected" if all_zero else "inconclusive"
             alignment = "consistent" if e["negative"] else "opposite" if e["positive"] else "inconclusive"
-            _directional_result(row, state, direction, alignment, "skewness_proxy")
-            row["notes"].append("经典方向对照使用左偏这一代理指标；偏度不单独检验最大回撤或首达时间不对称。")
+            _directional_result(row, state, direction, alignment, "quartile_skewness_proxy")
+            row["notes"].append("主要检验使用分位数偏度；左右远尾和首达时间另行展示。")
         else:
             neg, pos = e["negative_lags"], e["positive_lags"]
             direction = "mixed" if neg and pos else "coarse_leads_fine" if neg else "fine_leads_coarse" if pos else "undetermined"
@@ -121,11 +173,11 @@ def assess(group, config):
         unavailable(1, "收益没有变化或有效配对不足。")
     else:
         if selected:
-            c, label, text, level = "correlation_detected", "检出线性相关", f"{scope} 中，lag {', '.join(map(str, selected))} 的相关在各带宽下均有区间支持。", "interval"
-        elif ev["sensitive_lags"]:
+            c, label, text, level = "correlation_detected", "检出线性相关", f"{scope} 中，lag {', '.join(map(str, selected))} 的主要检验检出相关。", "interval"
+        elif ev["sensitive_lags"] and "primary_rows" not in group["dependence_uncertainty"]:
             c, label, text, level = "mixed", "依赖带宽选择", f"{scope} 的相关结论随 HAC 带宽变化。", "interval"
         elif ev["complete"]:
-            c, label, text, level = "not_detected", "未检出线性相关", f"{scope} 的校正区间均包含零；尚不能据此断言收益独立。", "interval"
+            c, label, text, level = "not_detected", "未检出线性相关", f"{scope} 经多重校正未检出相关；这不能等同于已证明收益独立。", "interval"
         else:
             c, label, text, level = "descriptive", "仅有描述性结果", f"{scope} 的区间覆盖不足，保留收益 ACF 点估计。", "descriptive"
         add(1, c, label, text, [metric("收益 ACF(1)", r)], level=level, evidence=ev)
@@ -156,16 +208,16 @@ def assess(group, config):
             level="interval" if supported else "descriptive", evidence={"kurtosis": bk, "tail": bt}, notes=notes)
 
     asym = group["asymmetry"]
-    skew = asym["skewness"]
+    skew = asym["quantile_skewness"]
     if skew is None:
-        unavailable(3, asym["reason"] or "偏度不可计算。")
+        unavailable(3, asym["reason"] or "四分位距为零，分位数偏度不可计算。")
     else:
-        e = block_evidence(group, config, "skewness")
+        e = primary_skew_evidence(group, config)
         supported = e["positive"] or e["negative"]
         direction = "右偏" if skew > 0 else "左偏" if skew < 0 else "对称"
-        text = f"收益分布{direction}；" + ("偏度的区间在各块长下均不含零。" if supported else "偏度区间未给出一致的不对称证据。")
-        add(3, "supported" if supported else "descriptive", f"{direction}有区间支持" if supported else "不对称证据不足",
-            text, [metric("偏度", skew)], level="interval" if supported else "descriptive", evidence=e)
+        text = f"收益分布的四分位形状{direction}；" + (f"主要块长 {e['primary_block_length']} 的 95% 区间不含零。" if supported else "主要偏度区间包含零。" if e["complete"] else "主要偏度区间不可计算。")
+        add(3, "supported" if supported else "not_detected" if e["complete"] else "insufficient_data", f"{direction}有区间支持" if supported else "未检出偏度不对称" if e["complete"] else "偏度区间样本不足",
+            text, [metric("分位数偏度", skew), metric("普通偏度", asym["skewness"])], level="interval" if supported else "descriptive", evidence=e)
 
     scales = group["aggregation"]["scales"]
     if len(scales) < 2 or any(s["excess_kurtosis"] is None or s["normal_quantile_rmse"] is None or s["n"] < 100 for s in scales):
@@ -270,7 +322,10 @@ def assess(group, config):
         elif persistence_test['full_upper_rejection']:
             text+=' 全段 R/S 有持续性证据，但半段结果未一致支持。'
 
-        add(8,'supported' if persistence_test['stable_upper_rejection'] else 'indicative' if stable else 'mixed',label,text,
+        if persistence_test['full_upper_rejection'] and not persistence_test['stable_upper_rejection']:
+            label='全样本持续性有迹象，分段不一致'
+        full_shape = len(full)==2 and all(r.get('slow_power_pattern') for r in full)
+        add(8,'supported' if persistence_test['stable_upper_rejection'] else 'indicative' if stable or full_shape or persistence_test['full_upper_rejection'] else 'mixed',label,text,
             [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections')),
              metric('幂律指数 β',power['shape']),metric('幂律 R²',power['r_squared'])],
             level='asymptotic' if persistence_test['stable_upper_rejection'] else 'model',evidence={**decay,'persistence_test':persistence_test},
@@ -282,15 +337,25 @@ def assess(group, config):
             [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections'))],level='unavailable',evidence=decay)
 
     ev = [lag_evidence(group, config, "leverage", p) for p in ("absolute", "squared")]
-    negative = sorted(set(ev[0]["negative_lags"]) & set(ev[1]["negative_lags"]))
+    primary_policy = "primary_rows" in group["dependence_uncertainty"]
+    negative = ev[0]["negative_lags"] if primary_policy else sorted(set(ev[0]["negative_lags"]) & set(ev[1]["negative_lags"]))
     lv = [at_lag(group["leverage"][p], 1) for p in ("absolute", "squared")]
     if any(v is None for v in lv):
         unavailable(9, "收益与未来波动的有效配对不足或方差为零。")
     else:
-        add(9, "supported" if negative else "inconclusive", "负向关系有支持" if negative else "杠杆效应证据不足",
-            f"两种波动指标在 lag {', '.join(map(str, negative))} 均有负相关区间支持。" if negative else "所检滞后内，两种波动指标未共同给出负相关区间证据。",
+        add(9, "supported" if negative else "insufficient_data" if primary_policy and ev[0].get("computed_lags",0)==0 else "inconclusive", "负向关系有支持" if negative else "杠杆检验不可用" if primary_policy and ev[0].get("computed_lags",0)==0 else "杠杆效应证据不足",
+            (f"收益与未来绝对收益在 lag {', '.join(map(str, negative))} 检出负相关；平方收益作为对照。" if primary_policy else f"两种指标在 lag {negative} 均有支持。") if negative else ("主要检验未检出负向关系。" if ev[0].get('complete') else "主要检验覆盖不足，保留相关点估计。"),
             [metric("收益与下期绝对收益", lv[0]), metric("收益与下期平方收益", lv[1])],
-            level="interval" if negative else "descriptive", evidence={"absolute":ev[0], "squared":ev[1]})
+            level="interval" if negative else "descriptive", evidence={"absolute":ev[0], "squared":ev[1], "primary_proxy":"absolute" if primary_policy else "both"})
+
+    if primary_policy and rows['9']['evidence_level']!='unavailable':
+        positive=ev[0]['positive_lags']
+        rows['9'].update(direction='mixed' if negative and positive else 'negative' if negative else 'positive' if positive else 'undetermined',
+                         classical_alignment='mixed' if negative and positive else 'consistent' if negative else 'opposite' if positive else 'inconclusive')
+        if positive:
+            rows['9'].update(conclusion='mixed' if negative else 'opposite_direction',
+                label='方向随滞后变化' if negative else '反向杠杆相关有支持', evidence_level='interval',evidence_label=LEVELS['interval'],
+                summary=f"收益与未来绝对收益：正相关 lag {positive}；负相关 lag {negative}。平方收益另作对照。")
 
     vol = group["volume_volatility"]
     if vol["status"] != "computed":
@@ -335,15 +400,15 @@ def assess(group, config):
         unavailable(11, ts.get("reason") or "粗细波动的配对不足或方差为零。")
     else:
         neg, pos = ev["negative_lags"], ev["positive_lags"]
-        c = "mixed" if neg and pos else "supported" if neg or pos else "inconclusive"
-        label = "方向随滞后变化" if neg and pos else "粗在前更强" if neg else "细在前更强" if pos else "方向差异证据不足"
+        c = "mixed" if neg and pos else "supported" if neg or pos else "insufficient_data" if ev.get("computed_lags",1)==0 else "inconclusive"
+        label = "方向随滞后变化" if neg and pos else "粗在前更强" if neg else "细在前更强" if pos else "尺度方向检验不可用" if c=="insufficient_data" else "方向差异证据不足"
         text = f"每步 {lag_label(config, factor=config.coarse_factor)}。"
         if neg:
             text += f" lag {', '.join(map(str, neg))} 的区间支持粗波动在前更强。"
         if pos:
             text += f" lag {', '.join(map(str, pos))} 的区间支持细波动在前更强。"
         if not (neg or pos):
-            text += " 所检滞后内，两种先后顺序尚未取得跨带宽一致的方向差异证据。"
+            text += " 主要检验尚未检出两种先后顺序的差异。"
         add(11, c, label, text, [metric("相邻粗区间方向差", row["difference"])],
             level="interval" if neg or pos else "descriptive", evidence=ev)
 
@@ -353,6 +418,28 @@ def assess(group, config):
     # lag-1 display value appear to be the evidence for a multi-lag conclusion.
     for i, supporting in [(1, selected), (6, common), (9, negative), (11, sorted(neg + pos) if row.get("difference") is not None else [])]:
         rows[str(i)]["scope_note"] = "区间支持的 lag：" + ", ".join(map(str, supporting)) if supporting else ""
+    for i,e in [('1',lag_evidence(group,config,'acf','return')),
+                ('3',rows['3'].get('evidence',{})), ('9',rows['9'].get('evidence',{}).get('absolute',{})),
+                ('11',rows['11'].get('evidence',{}))]:
+        rows[i]['inference_status']=e.get('inference_status','computed' if e.get('complete') else 'unavailable')
+        if e.get('inference_status')=='unavailable':
+            rows[i]['inference_reason']=e.get('reason') or '主要区间未满足样本或方差条件'
+        sensitivity=e.get('sensitivity')
+        if isinstance(sensitivity,list):
+            ready=[x for x in sensitivity if x['computed_lags']==e.get('requested_lags')]
+            signs=set(e.get('negative_lags',[])) if e.get('negative_lags') else set(e.get('positive_lags',[]))
+            side='negative_lags' if e.get('negative_lags') else 'positive_lags'
+            if signs:
+                matches=sum(bool(signs.intersection(x[side])) for x in ready)
+                rows[i]['stability_summary']=f'补充带宽：{matches}/{len(ready)} 个完整方案也检出相同方向；{len(sensitivity)-len(ready)} 个方案覆盖不完整。'
+        elif isinstance(sensitivity,dict) and e.get('complete'):
+            ready=[x for x in sensitivity.get('intervals',[]) if x.get('status')=='computed']
+            side='negative' if e.get('negative') else 'positive' if e.get('positive') else None
+            if side:
+                matches=sum(x['upper']<0 if side=='negative' else x['lower']>0 for x in ready)
+                rows[i]['stability_summary']=f'块长对照：{matches}/{len(ready)} 个可算方案方向一致。'
+        if e.get('sensitivity'):
+            rows[i]['stability']=e['sensitivity']
     add_directional_assessments(rows, config)
     return {"rule_version": RULE_VERSION, "automatic_pass_fail": False,
             "method": "fixed_evidence_rules", "by_fact": dict(sorted(rows.items(), key=lambda x: int(x[0])))}
