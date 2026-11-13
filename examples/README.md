@@ -52,3 +52,11 @@ Coin Metrics 数据和相应衍生示例采用 CC BY-NC 4.0，来源署名见各
 World Bank 样本采用 CC BY 4.0；Binance 样本和衍生报告采用 CC BY-NC-SA 4.0 及其数据条款；TAIFEX 每日行情采用台湾政府资料开放授权条款第 1 版。具体来源和转换步骤见[数据说明](../data/README.md)。
 
 主要相关检验的有效样本量、带宽、原始及 Holm 校正 p 值见各数据集的 `*-primary-dependence-intervals.csv`。方法对照与验证见[评估方法](../docs/assessment-methods.md)。
+
+README 总览图由已保存的评估表生成：
+
+```bash
+python examples/plot_assessment_overview.py
+```
+
+绘图需要中文字体（如 Noto Sans CJK）；可用 `--font /path/to/font` 指定字体文件。

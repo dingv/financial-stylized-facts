@@ -13,6 +13,10 @@
 
 仓库包含真实历史数据、生成脚本和配套报告，克隆后即可运行。
 
+![15 组真实市场数据的 11 项 stylized facts 评估总览](examples/reports/images/assessment-overview.png)
+
+总览由下列示例报告自动生成，颜色对应各项评估结论。
+
 | 数据 | 覆盖时间 | 来源 | 报告 |
 | --- | --- | --- | --- |
 | AAPL、MSFT 日频股票 | 2000–2013 | Quandl WIKI，经 Bokeh 数据集分发 | [AAPL](examples/reports/AAPL.html) · [MSFT](examples/reports/MSFT.html) |
