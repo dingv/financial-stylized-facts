@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+GOLD_UAH,observed,4174,4174,1,0,0,0,4173,2010-01-01 00:00:00+00:00,2025-12-31 00:00:00+00:00,0.0007338506903869444,0.012604114415915994,0.052240594296669066,61.226108764444746,computed,,2.544629469295015,0.011023244668104481

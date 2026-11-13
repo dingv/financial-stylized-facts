@@ -14,10 +14,8 @@
 | [ETH.csv](examples/ETH.csv) | 2020-01-01 — 2025-12-31 | 2,192 | UTC 日末参考价 USD，现货成交额 USD |
 | [BRENT.csv](examples/BRENT.csv) | 2010-01-04 — 2025-12-31 | 4,047 | Brent FOB 现货，USD/桶 |
 | [HENRYHUB.csv](examples/HENRYHUB.csv) | 2010-01-04 — 2025-12-31 | 4,036 | Henry Hub 天然气现货，USD/百万 Btu |
-| [GOLD.csv](examples/GOLD.csv)、[SILVER.csv](examples/SILVER.csv) | 1960-01 — 2025-12 | 各 792 | 月均价，USD/金衡盎司 |
-| [COPPER.csv](examples/COPPER.csv) | 1960-01 — 2025-12 | 792 | 月均价，USD/公吨 |
+| [GOLD_UAH.csv](examples/GOLD_UAH.csv)、[SILVER_UAH.csv](examples/SILVER_UAH.csv) | 2010-01-01 — 2025-12-31 | 各 4,174 | 工作日官方核算价，UAH/金衡盎司 |
 | [BTC_FUT_202512.csv](examples/BTC_FUT_202512.csv)、[ETH_FUT_202512.csv](examples/ETH_FUT_202512.csv) | 2025-10 — 2025-11 | 各 1,464 | 固定交割合约小时收盘价，USDT |
-| [TXO_202512_24000_CALL.csv](examples/TXO_202512_24000_CALL.csv)、[TXO_202512_24000_PUT.csv](examples/TXO_202512_24000_PUT.csv) | 2025-03-20 — 2025-12-16 | 各 186 | 台指期权每日结算权利金，指数点 |
 
 两个汇率文件各有 173 个源 `ND` 日期，保存为空白；其余各有 4,001 个有效报价。周末不补行。示例分析明确跳过空白，按相邻有效观测计算；原 CSV 不删行或插值。
 
@@ -53,9 +51,13 @@
 
 ## 金属数据来源
 
-**World Bank Prospects Group, Commodity Price Data (Pink Sheet)**：[官方数据目录与 CC BY 4.0 许可](https://datacatalog.worldbank.org/search/dataset/0038238/commodity-prices-history-and-projections)。使用 2026 年 10 月快照的 `Monthly Prices`，预先选择 1960–2025 全部月份。黄金、白银按金衡盎司；铜按公吨，均为名义美元报价。
+**National Bank of Ukraine (NBU)**：[官方开放数据](https://bank.gov.ua/ua/open-data)、[政府数据目录与再分发条件](https://data.gov.ua/dataset/c0e4da17-2e98-4cfd-90c0-03f32a17189b)。目录允许复制、发布、商业使用并要求来源署名；随附[许可与来源说明](examples/licenses/nbu.txt)。下载日期为 2026-11-13，API 地址和原文件 SHA256 见清单。
 
-每月一条，月初日期仅作月份标签。保留源数值和缺失槽，不插值；计算月均价格之间的变化，不把它写成月末收盘收益。原始 Excel 的 `Description` 保留各报价品种的定义。转换只选择列、日期范围与重命名，来源为 World Bank，许可 CC BY 4.0。
+黄金 `XAU`、白银 `XAG` 各取 2010–2025 年全部周一至周五记录。原 API 每个日历日都有官方有效价格；转换不把周末沿用价视作额外市场观测。工作日节假日的重复报价保留，不插值、不去极值。
+
+价格取 `rate_per_unit`，单位为 **乌克兰格里夫纳（UAH）/金衡盎司**。逐行核对 `rate / units` 与该价格一致，原始 `rate`、`units`、`calcdate` 另列保存。历史上 `units` 从 10 改为 1，不能直接把未经单位转换的 `rate` 拼成价格序列。
+
+这些是官方核算参考价，无成交量；价格变化同时包含金属价格与计价货币因素。此样本没有换算美元，也不标为美元现货收盘价。每个样本包含 4,174 个价格、4,173 个相邻工作日观测收益；一个 lag 是一个源观测，可跨周末。
 
 ## 交割期货来源
 
@@ -64,16 +66,6 @@
 使用真实 K 线 close；成交量取基础资产数量 `volume`（BTC 或 ETH），不是 USDT 成交额。将 `hh:59:59.999` 收盘时间标记为下一整点，以同一区间价格与量配对。保留零成交量；若无成交，价格留空，不沿用前价。两个实际样本均无缺失小时、无零成交小时。输入共 1,464 个价格，对应 1,463 个可计算收益。
 
 这是固定到期日合约，没有换月，也不是永续合约。价格收益不包括保证金杠杆、费用或资金管理。数据、筛选后的样本及衍生统计/报告采用 **CC BY-NC-SA 4.0** 及 [Binance Vision 数据条款](examples/licenses/binance-terms.md)，需注明 Binance Vision 并以相同数据许可分享；软件代码仍独立采用 MIT。
-
-## 期权来源
-
-**台湾期货交易所 TAIFEX 每日选择权行情**：[政府开放数据条目](https://data.gov.tw/dataset/11320)、[年度历史下载](https://www.taifex.com.tw/cht/3/optDailyMarketView)。开放数据条目采用[政府资料开放授权条款第 1 版](https://data.gov.tw/license)；交易所[网站使用条款第三项](https://www.taifex.com.tw/cht/edu/userTerms)明确排除已授权政府开放平台的资料。来源署名：台湾期货交易所、金融监督管理委员会证券期货局；下载日期 2026-11-03。
-
-从 2025 年完整原始压缩包筛选：TXO、202512 到期月、行权价 24000、一般交易时段，分别保存 CALL 与 PUT。样本含同一合约挂牌后的全部到期日前记录，未根据统计表现选择日期或拼接其他合约。两份均为 2025-03-20 至 2025-12-16，共 186 个价格。
-
-分析采用交易所每日 `结算价`；[官方规则](https://www.taifex.com.tw/cht/5/optSetPrice)允许无近期成交时由交易所决定，因此不称为实际成交收盘价。实际 `收盘价` 另存 `last_trade_price`，无成交时为空；`volume` 为一般时段成交口数，零量保留。日期、结算价、成交价、成交量及合约标识均保留在 CSV，转换不修改价格。
-
-[到期日为 2025-12-17](https://www.taifex.com.tw/cht/5/optIndxFSP?commodityIds=2&end_month=12&end_year=2025&start_month=12&start_year=2024)，终止日的结算栏 0 不视为期权权利金观测；这不是在普通交易日剔除零价。每份仅 185 条收益，未降低 HAC、GARCH 或长记忆的样本门槛。
 
 ## 重建新增样本
 
@@ -89,11 +81,10 @@ python examples/prepare_market_data.py --raw /path/to/originals --output /tmp/fs
 
 ```bash
 python examples/prepare_market_data.py --raw /path/to/originals --output /tmp/extended-rebuilt \
-  --datasets GOLD SILVER COPPER \
-  BTC_FUT_202512 ETH_FUT_202512 TXO_202512_24000_CALL TXO_202512_24000_PUT
+  --datasets GOLD_UAH SILVER_UAH BTC_FUT_202512 ETH_FUT_202512
 ```
 
-默认仍重建 BTC、ETH、BRENT、HENRYHUB 四份日频样本。World Bank XLSX、Binance ZIP 和 TAIFEX ZIP 的重建只使用 Python 标准库，无需新增依赖。脚本先验证原文件，再逐字节验证重建 CSV 与清单一致。EIA 下载文件会更新，重建此快照需使用对应下载日保存的原件。
+默认仍重建 BTC、ETH、BRENT、HENRYHUB 四份日频样本。NBU JSON 和 Binance ZIP 的重建只使用 Python 标准库，无需新增依赖。脚本先验证原文件，再逐字节验证重建 CSV 与清单一致。EIA 下载文件会更新，重建此快照需使用对应下载日保存的原件。
 
 ## 来源清单与复现
 

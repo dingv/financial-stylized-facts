@@ -22,10 +22,8 @@ GROUPS = [
     ("外汇", "日频", [("EURUSD", "EUR/USD"), ("USDJPY", "USD/JPY")]),
     ("加密资产", "日频", [("BTC", "BTC"), ("ETH", "ETH")]),
     ("能源", "日频", [("BRENT", "Brent 原油"), ("HENRYHUB", "Henry Hub 天然气")]),
-    ("金属", "月频", [("GOLD", "黄金"), ("SILVER", "白银"), ("COPPER", "铜")]),
+    ("金属", "日频 · UAH", [("GOLD_UAH", "黄金（UAH）"), ("SILVER_UAH", "白银（UAH）")]),
     ("期货", "小时", [("BTC_FUT_202512", "BTC 期货"), ("ETH_FUT_202512", "ETH 期货")]),
-    ("期权", "日频", [("TXO_202512_24000_CALL", "台指看涨期权"),
-                        ("TXO_202512_24000_PUT", "台指看跌期权")]),
 ]
 HEADERS = ["收益线性相关", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集",
            "条件厚尾", "波动缓慢衰减", "杠杆效应", "量价相关", "尺度不对称"]
@@ -91,13 +89,15 @@ def select_font(explicit):
 def draw(directory, output, font=None):
     assessments, version = load_assessments(directory)
     plt.rcParams.update({"font.family": select_font(font), "axes.unicode_minus": False})
-    fig = plt.figure(figsize=(16, 10.4), facecolor="white")
+    count = len(assessments)
+    height = .9 * count + .42 * len(GROUPS) + 3.3
+    fig = plt.figure(figsize=(16, (height + 3.25) * .445), facecolor="white")
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_xlim(-3.65, 11.9)
-    ax.set_ylim(-3.25, 20.25)
+    ax.set_ylim(-3.25, height)
     ax.invert_yaxis()
     ax.axis("off")
-    ax.text(-3.3, -2.4, "15 组真实数据 × 11 项 stylized facts", fontsize=23,
+    ax.text(-3.3, -2.4, f"{count} 组真实数据 × 11 项 stylized facts", fontsize=23,
             weight="bold", color="#18222D", va="center")
     ax.text(-3.3, -1.62, "跨市场评估总览", fontsize=13, color="#617080", va="center")
     for col, label in enumerate(HEADERS):
@@ -135,12 +135,12 @@ def draw(directory, output, font=None):
         ax.text(x+.34, y+.23, label, fontsize=10.5, color="#535E69", va="center")
     ax.text(0, y+.94, "第 1 列直接标注收益相关检验结果；各市场按其原始采样频率独立评估。",
             fontsize=10.5, color="#74808C", va="center")
-    ax.text(0, y+1.50, f"来源：15 份示例报告的 assessment.csv · 评估规则 v{version}",
+    ax.text(0, y+1.50, f"来源：{count} 份示例报告的 assessment.csv · 评估规则 v{version}",
             fontsize=9.5, color="#929BA4", va="center")
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=170, facecolor="white")
     plt.close(fig)
-    print(f"Wrote {output}: {len(assessments)} datasets, 165 cells, rule v{version}")
+    print(f"Wrote {output}: {len(assessments)} datasets, {len(assessments) * 11} cells, rule v{version}")
 
 
 if __name__ == "__main__":

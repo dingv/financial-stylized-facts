@@ -1,0 +1,2 @@
+asset_id,path_id,input_rows,sampled_points,sessions,duplicate_rows_last_wins,missing_prices,carried_prices,valid_returns,start,end,mean,std,zero_fraction,excess_kurtosis,status,reason,skewness,exceedance_fraction
+SILVER_UAH,observed,4174,4174,1,0,0,0,4173,2010-01-01 00:00:00+00:00,2025-12-31 00:00:00+00:00,0.0007596636670687463,0.020843906564291602,0.05200095854301462,15.893445711967857,computed,,-0.07235267032154898,0.014378145219266714

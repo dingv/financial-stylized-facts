@@ -1,0 +1,4 @@
+asset_id,path_id,window,windows,retained_returns,omitted_returns,events,fano,null_lower,null_upper,p_value,family_adjusted_p,reject,status,reason
+GOLD_UAH,observed,10,417,4170,3,42,1.8561126373626382,0.9014423076923074,1.1401098901098903,0.001,0.003,True,computed,
+GOLD_UAH,observed,30,139,4170,3,42,2.6214630779848167,0.7988267770876467,1.230503795721187,0.001,0.003,True,computed,
+GOLD_UAH,observed,60,69,4140,33,42,3.9243697478991586,0.7352941176470585,1.315126050420168,0.001,0.003,True,computed,

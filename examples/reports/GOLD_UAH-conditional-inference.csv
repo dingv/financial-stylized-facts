@@ -1,0 +1,5 @@
+asset_id,path_id,segment,status,reason,replications,failed_refits,joint_tail_p,family_adjusted_tail_p,adequacy_p,tail_supported,metric,estimate,null_lower,null_upper,p_value,p_lower_bound,p_upper_bound,monte_carlo_interval,exceedances
+GOLD_UAH,observed,1,computed,,199,0,0.005,0.005,0.11,True,excess_kurtosis,62.401854549970295,-0.1421452298299012,0.14768573991372833,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+GOLD_UAH,observed,1,computed,,199,0,0.005,0.005,0.11,True,tail_probability_3sigma,0.00873150618481688,0.0014552510308028135,0.0041232112539413045,0.005,0.005,0.005,"[0.0, 0.018366327694415267]",0
+GOLD_UAH,observed,1,computed,,199,0,0.005,0.005,0.11,True,residual_q10,18.88704070888197,3.9222012920438813,21.120682871177127,0.055,0.055,0.055,"[0.02435727131620756, 0.09047024091267479]",10
+GOLD_UAH,observed,1,computed,,199,0,0.005,0.005,0.11,True,squared_residual_q10,0.7031028590280303,3.2331784702535775,18.969944784833793,1.0,1.0,1.0,"[0.9816336723055847, 1.0]",199

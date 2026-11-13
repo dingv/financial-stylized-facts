@@ -1,0 +1,19 @@
+National Bank of Ukraine (NBU)
+Official exchange rates and accounting prices of banking metals.
+Retrieved: 2026-11-13.
+
+Source: https://bank.gov.ua/ua/open-data
+Dataset and reuse conditions:
+https://data.gov.ua/dataset/c0e4da17-2e98-4cfd-90c0-03f32a17189b
+
+The government dataset page labels the data Creative Commons Attribution
+and permits copying, publication, redistribution and commercial reuse
+with mandatory attribution and a link to the source.
+
+This repository selects weekday XAU/XAG observations for 2010–2025,
+retains the source's per-troy-ounce values in UAH, and normalizes column
+names and dates. Original rate, units and calculation-date fields remain
+in the extracted CSV. No currency conversion or price interpolation.
+
+Attribution: National Bank of Ukraine. Official accounting prices for
+banking metals, retrieved 2026-11-13.

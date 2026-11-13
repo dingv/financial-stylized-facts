@@ -13,7 +13,7 @@
 
 仓库包含真实历史数据、生成脚本和配套报告，克隆后即可运行。
 
-![15 组真实市场数据的 11 项 stylized facts 评估总览](examples/reports/images/assessment-overview.png)
+![12 组真实市场数据的 11 项 stylized facts 评估总览](examples/reports/images/assessment-overview.png)
 
 总览由下列示例报告自动生成，颜色对应各项评估结论。
 
@@ -23,9 +23,8 @@
 | EUR/USD、USD/JPY 日频汇率 | 2010–2025 | Federal Reserve H.10 | [EUR/USD](examples/reports/EURUSD.html) · [USD/JPY](examples/reports/USDJPY.html) |
 | BTC、ETH 日频参考价与现货成交额 | 2020–2025 | Coin Metrics | [BTC](examples/reports/BTC.html) · [ETH](examples/reports/ETH.html) |
 | Brent 原油、Henry Hub 天然气日频现货价 | 2010–2025 | U.S. EIA | [Brent](examples/reports/BRENT.html) · [Henry Hub](examples/reports/HENRYHUB.html) |
-| 黄金、白银、铜月度均价 | 1960–2025 | World Bank Pink Sheet | [黄金](examples/reports/GOLD.html) · [白银](examples/reports/SILVER.html) · [铜](examples/reports/COPPER.html) |
+| 黄金、白银日频核算价（UAH/金衡盎司） | 2010–2025 | National Bank of Ukraine | [黄金](examples/reports/GOLD_UAH.html) · [白银](examples/reports/SILVER_UAH.html) |
 | BTC、ETH 交割期货小时价格 | 2025-10 至 2025-11，12 月到期 | Binance Vision | [BTC 期货](examples/reports/BTC_FUT_202512.html) · [ETH 期货](examples/reports/ETH_FUT_202512.html) |
-| 台指看涨／看跌期权日结算价 | 2025-03 至 2025-12，K=24000 | TAIFEX | [看涨](examples/reports/TXO_202512_24000_CALL.html) · [看跌](examples/reports/TXO_202512_24000_PUT.html) |
 
 数据来源和各样本许可见[数据说明](data/README.md)。
 
@@ -47,7 +46,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 ```
 
-打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为十五组真实数据分别生成报告。
+打开 `/tmp/fsf-aapl/AAPL/report/index.html`。用 `--dataset all` 为十二组真实数据分别生成报告。
 
 分析自己的分钟价格：
 

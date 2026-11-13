@@ -63,7 +63,8 @@ def load_cases(dataset, data_dir=DATA):
             raise ValueError(f"Snapshot row count mismatch: {name}")
         info.update(source_url=entry["source_url"], data_license=entry["license"],
                     license_url=entry["license_url"], attribution=entry["attribution"],
-                    upstream_sha256=entry["source_sha256"], retrieved_on=catalog["retrieved_on"])
+                    upstream_sha256=entry["source_sha256"],
+                    retrieved_on=entry.get("retrieved_on", catalog["retrieved_on"]))
         info["notes"] += entry["notes"]
         for key in ("display_name", "report_note", "contract_id", "expiry", "strike", "option_type", "underlying", "sample_kind"):
             if key in entry:

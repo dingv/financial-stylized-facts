@@ -4,7 +4,7 @@ EIA workbooks require the optional extraction dependency xlrd==2.0.2.
 Source filenames, download URLs and checksums are in data/examples/manifest.json.
 """
 import argparse
-from market_sources import worldbank_rows, binance_rows, taifex_rows, encode_csv
+from market_sources import worldbank_rows, binance_rows, taifex_rows, nbu_metal_rows, encode_csv
 import csv
 import hashlib
 import io
@@ -17,6 +17,9 @@ MARKETS = ("BTC", "ETH", "BRENT", "HENRYHUB")
 
 
 def extract(source, entry):
+    if entry["source_format"] == "nbu-metal-daily":
+        columns, rows = nbu_metal_rows(source, entry)
+        return encode_csv(columns, rows)
     if entry["source_format"] == "worldbank-monthly":
         columns, rows = worldbank_rows(source, entry["source_column"])
         return encode_csv(columns, rows)

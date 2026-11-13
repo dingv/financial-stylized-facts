@@ -12,9 +12,8 @@
 | ETH | 2020–2025，UTC 日末美元参考价、现货美元成交额 | [ETH.html](reports/ETH.html) |
 | Brent | 2010–2025，欧洲 Brent FOB 现货，美元/桶 | [BRENT.html](reports/BRENT.html) |
 | Henry Hub | 2010–2025，天然气现货，美元/百万 Btu | [HENRYHUB.html](reports/HENRYHUB.html) |
-| 黄金、白银、铜 | 1960–2025，月度均价 | [黄金](reports/GOLD.html) · [白银](reports/SILVER.html) · [铜](reports/COPPER.html) |
+| 黄金、白银 | 2010–2025，工作日官方核算价，UAH/金衡盎司 | [黄金](reports/GOLD_UAH.html) · [白银](reports/SILVER_UAH.html) |
 | BTC、ETH 交割期货 | 2025-10 至 2025-11，单一 2025-12-26 到期合约的小时收盘价 | [BTC 期货](reports/BTC_FUT_202512.html) · [ETH 期货](reports/ETH_FUT_202512.html) |
-| 台指看涨／看跌期权 | 2025-03-20 至 2025-12-16，2025-12-17 到期，K=24000，日结算价 | [看涨](reports/TXO_202512_24000_CALL.html) · [看跌](reports/TXO_202512_24000_PUT.html) |
 
 下载 HTML 后用浏览器打开，或克隆仓库后直接打开本地文件。页面已嵌入图像，无需启动网页服务器。
 
@@ -25,9 +24,8 @@
 ```bash
 python examples/run_reports.py --dataset AAPL --output /tmp/fsf-aapl
 python examples/run_reports.py --dataset BTC --output /tmp/fsf-btc
-python examples/run_reports.py --dataset GOLD --output /tmp/fsf-gold
+python examples/run_reports.py --dataset GOLD_UAH --output /tmp/fsf-gold
 python examples/run_reports.py --dataset BTC_FUT_202512 --output /tmp/fsf-futures
-python examples/run_reports.py --dataset TXO_202512_24000_CALL --output /tmp/fsf-option
 python examples/run_reports.py --dataset all --output /tmp/fsf-markets
 ```
 
@@ -41,15 +39,12 @@ python examples/run_reports.py --dataset all --output /tmp/fsf-markets
 
 Coin Metrics 数据和相应衍生示例采用 CC BY-NC 4.0，来源署名见各报告及[数据许可](../data/examples/licenses/coinmetrics.txt)。能源示例采用 EIA 公共领域数据。
 
-## 商品与衍生品的时间含义
+## 金属与期货的时间含义
 
-- **月度商品**：一个 lag 是一个日历月。输入为月均价，计算相邻月均价的对数变化；并非月末持有收益，也未假定每月固定 30 天。
+- **黄金、白银**：2010–2025 年各 4,174 个工作日官方价格，4,173 个相邻观测收益。计价为 UAH/金衡盎司，因此反映金属及计价货币的共同变化。保留工作日重复报价，不增加周末观测。
 - **交割期货**：一个 lag 是一小时，UTC 小时末标签。两份样本各有 1,464 个小时，保持单一到期合约，没有换月跳点。成交量为同小时基础资产数量。
-- **期权**：每份 186 个结算价、185 个有效收益。固定标的、行权价、到期日与看涨／看跌方向；到期日不作为权利金观测。结算价可能包含交易所估值，实际成交收盘价另列，缺失不填补。样本不足的 HAC、GARCH、长记忆检验按原阈值报告原因。
 
-期权权利金受到标的变化、隐含波动率与时间价值衰减共同影响，这组结果用于观察该合约的价格序列，不等同于标的市场或对冲策略收益。各频率结果分别解读。
-
-World Bank 样本采用 CC BY 4.0；Binance 样本和衍生报告采用 CC BY-NC-SA 4.0 及其数据条款；TAIFEX 每日行情采用台湾政府资料开放授权条款第 1 版。具体来源和转换步骤见[数据说明](../data/README.md)。
+NBU 数据按开放数据署名条件分发；Binance 样本及衍生报告采用 CC BY-NC-SA 4.0 及其数据条款。来源、单位与转换步骤见[数据说明](../data/README.md)。
 
 主要相关检验的有效样本量、带宽、原始及 Holm 校正 p 值见各数据集的 `*-primary-dependence-intervals.csv`。方法对照与验证见[评估方法](../docs/assessment-methods.md)。
 

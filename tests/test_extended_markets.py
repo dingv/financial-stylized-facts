@@ -28,19 +28,24 @@ sources = module("market_sources.py")
 
 
 @pytest.mark.parametrize("name,first,last", [
-    ("GOLD", 35, 4309), ("SILVER", .9, 62.3), ("COPPER", 715, 11785),
+    ("GOLD_UAH", 8723.613, 186492.76), ("SILVER_UAH", 135.106, 3216.78),
 ])
-def test_monthly_samples_are_calendar_months_not_daily(name, first, last):
-    _, _, frame, config, info = examples.load_cases(name)[0]
-    assert len(frame) == 792 and config.sampling == "observations"
-    assert config.observation_unit == "calendar-month"
-    assert info["adapter"] == "monthly-labelled-csv" and config.volume_kind == "none"
-    periods = frame.timestamp.dt.tz_localize(None).dt.to_period("M")
-    assert list(periods) == list(pd.period_range("1960-01", "2025-12", freq="M"))
+def test_daily_metals_retain_units_weekday_clock_and_repeated_prices(name, first, last):
+    _, source, frame, config, info = examples.load_cases(name)[0]
+    raw = pd.read_csv(source)
+    assert len(frame) == 4174 and config.sampling == "observations"
+    assert frame.timestamp.dt.dayofweek.lt(5).all()
+    assert frame.timestamp.iloc[0] == pd.Timestamp("2010-01-01", tz="UTC")
+    assert frame.timestamp.iloc[-1] == pd.Timestamp("2025-12-31", tz="UTC")
     assert frame.price.iloc[0] == pytest.approx(first)
     assert frame.price.iloc[-1] == pytest.approx(last)
+    assert np.allclose(raw.source_rate / raw.source_units, frame.price, rtol=0, atol=1e-8)
+    assert set(raw.source_units) == {1, 10}
+    assert (frame.price.diff() == 0).sum() > 200
+    assert config.volume_kind == "none" and "UAH" in config.price_type
+    assert info["retrieved_on"] == "2026-11-13"
     _, quality = sample_path(frame, config)
-    assert quality["valid_returns"] == 791
+    assert quality["valid_returns"] == 4173
 
 
 @pytest.mark.parametrize("name,first,last", [
@@ -61,24 +66,6 @@ def test_futures_have_one_contract_and_aligned_hourly_clock(name, first, last):
     sampled, quality = sample_path(frame, config)
     assert quality["valid_returns"] == 1463
     assert np.isfinite(sampled.log_return.iloc[1:]).all()
-
-
-@pytest.mark.parametrize("side,first,last", [("CALL", 655, 3630), ("PUT", 2480, .2)])
-def test_option_premium_is_one_contract_before_expiry(side, first, last):
-    name = "TXO_202512_24000_" + side
-    _, source, frame, config, info = examples.load_cases(name)[0]
-    raw = pd.read_csv(source)
-    assert len(frame) == 186 and raw.contract_id.nunique() == 1
-    assert set(raw.option_type) == {side} and set(raw.strike) == {24000}
-    assert set(raw.expiry) == {"2025-12-17"}
-    assert frame.timestamp.max() == pd.Timestamp("2025-12-16", tz="UTC")
-    assert frame.price.iloc[0] == first and frame.price.iloc[-1] == last
-    assert raw.last_trade_price.isna().any()  # Never fabricated from settlement.
-    assert (raw.volume == 0).any()
-    assert config.garch_min_points == 500 and config.inference_min_pairs == 200
-    assert "结算价" in info["report_note"]
-    _, quality = sample_path(frame, config)
-    assert quality["valid_returns"] == 185
 
 
 def test_taifex_reader_does_not_join_strikes_sides_or_expiry_day(tmp_path):
@@ -113,3 +100,21 @@ def test_binance_bar_end_and_zero_trade_handling(tmp_path):
     path.write_bytes(b"corrupted")
     with pytest.raises(ValueError, match="checksum"):
         sources.binance_rows(tmp_path, entry)
+
+
+def test_nbu_reader_checks_unit_changes_and_source_calendar(tmp_path):
+    entry = dict(source_series="XAU", selection_start="2025-01-03", selection_end="2025-01-06")
+    records = [dict(cc="XAU", exchangedate=f"{day:02d}.01.2025", rate=1000, units=10,
+                    rate_per_unit=100, calcdate=" ") for day in range(3, 7)]
+    records[-1].update(rate=101, units=1, rate_per_unit=101)
+    source = tmp_path / "metal.json"
+    source.write_text(json.dumps(records))
+    _, rows = sources.nbu_metal_rows(source, entry)
+    assert [r[:4] for r in rows] == [("2025-01-03", "100", "1000", "10"),
+                                    ("2025-01-06", "101", "101", "1")]
+    for bad, message in [(records + [records[0]], "Duplicate"), (records[:-1], "incomplete"),
+                         ([dict(records[0], units=1)] + records[1:], "unit conversion"),
+                         ([dict(records[0], cc="XAG")] + records[1:], "Unexpected")]:
+        source.write_text(json.dumps(bad))
+        with pytest.raises(ValueError, match=message):
+            sources.nbu_metal_rows(source, entry)

@@ -4,10 +4,41 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 import hashlib
 import io
+import json
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 import zipfile
+
+
+def nbu_metal_rows(path, entry):
+    """Retain weekday accounting prices in UAH per troy ounce, without fills."""
+    source = json.loads(Path(path).read_text(encoding="utf-8"), parse_float=Decimal)
+    start = datetime.fromisoformat(entry["selection_start"]).date()
+    end = datetime.fromisoformat(entry["selection_end"]).date()
+    observations = {}
+    for record in source:
+        if record["cc"] != entry["source_series"]:
+            raise ValueError("Unexpected NBU metal")
+        day = datetime.strptime(record["exchangedate"], "%d.%m.%Y").date()
+        if not start <= day <= end:
+            continue
+        if day in observations:
+            raise ValueError("Duplicate NBU date")
+        rate, units, price = (Decimal(record[key]) for key in ("rate", "units", "rate_per_unit"))
+        if not all(v.is_finite() and v > 0 for v in (rate, units, price)):
+            raise ValueError("Invalid NBU price or units")
+        if abs(rate / units - price) > Decimal("0.0000001"):
+            raise ValueError("Inconsistent NBU unit conversion")
+        observations[day] = (day.isoformat(), str(price), str(rate), str(units),
+                             (record.get("calcdate") or "").strip())
+    expected = {start + timedelta(days=i) for i in range((end - start).days + 1)}
+    if set(observations) != expected:
+        raise ValueError("NBU source calendar is incomplete")
+    # Weekend publication values are not extra market observations. Weekday
+    # holidays and genuinely repeated official prices remain as published.
+    rows = [observations[day] for day in sorted(observations) if day.weekday() < 5]
+    return ["date", "price_uah_per_oz", "source_rate", "source_units", "source_calcdate"], rows
 
 
 def worldbank_rows(path, column, start="1960M01", end="2025M12"):
