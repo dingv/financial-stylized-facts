@@ -20,6 +20,7 @@ from scipy.stats import gaussian_kde
 from . import __version__
 from .data import AnalysisConfig, read_prices, sample_path
 from .statistics import distribution, three_acfs
+from .tail_index import sides, tail_diagnostics_by_scale
 from .tails import tail_diagnostics
 from .diagnostics import analyze_diagnostics
 from .dependence import dependence_diagnostics
@@ -214,6 +215,49 @@ def _tail_plot(diagnostic, directory, group_id):
         _style(ax)
     path = f"figures/{group_id}-tail-diagnostics.png"
     return {"tail_diagnostics": path}, {"tail_diagnostics": _save(fig, directory/path)}
+
+
+def _pareto_plots(result, returns, directory, group_id):
+    if all(fit["k"] is None for fit in result["daily_or_base"].values()) and not any(
+        len(draws) >= 2 for scale in result["scales"].values() for draws in scale["draws"].values()
+    ):
+        return {}, {}
+    fig = _figure()
+    for ax, (side, sign) in zip(fig.subplots(1, 2), (("loss", -1), ("gain", 1))):
+        fit = result["daily_or_base"][side]
+        if fit["k"] is not None:
+            x = np.sort(sign * returns)
+            x = x[x >= fit["xmin"]]
+            magnitude, index = np.unique(x, return_index=True)
+            ax.step(magnitude*100, (len(x)-index)/len(x), where="pre", label="Observed")
+            ax.plot(magnitude*100, (magnitude/x[0])**-fit["k"], "--", label="Pareto")
+            ax.set(xscale="log", yscale="log")
+            ax.legend()
+        ax.set(title=side.title()+" tail", xlabel="Log return magnitude (%)", ylabel="Tail survival probability")
+        _style(ax)
+    paths = {"pareto": f"figures/{group_id}-pareto.png"}
+    images = {"pareto": _save(fig, directory/paths["pareto"])}
+    fig = _figure(height=4)
+    ax = fig.subplots()
+    plotted = False
+    for i, (factor, scale) in enumerate(result["scales"].items()):
+        for side, offset, color in (("loss", -.16, "#397ba3"), ("gain", .16, "#e99542")):
+            draws = scale["draws"][side]
+            if len(draws) < 2:
+                continue
+            ax.boxplot(draws, positions=[i+offset], widths=.29, manage_ticks=False,
+                       patch_artist=True, boxprops={"facecolor": color},
+                       medianprops={"color": "#213448"}, flierprops={"marker": "d", "markersize": 3})
+            plotted = True
+    if plotted:
+        from matplotlib.patches import Patch
+        ax.legend(handles=[Patch(color="#397ba3", label="Loss tail"), Patch(color="#e99542", label="Gain tail")])
+        ax.set_xticks(range(len(result["scales"])), [str(n) for n in result["scales"]])
+        ax.set(yscale="log", ylabel="Tail index k", xlabel="Return interval (base observations)")
+        _style(ax)
+        paths["pareto_scales"] = f"figures/{group_id}-pareto-scales.png"
+        images["pareto_scales"] = _save(fig, directory/paths["pareto_scales"])
+    return paths, images
 
 
 def _first_passage_plot(result, config, directory, group_id):
@@ -555,6 +599,11 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
         diagnostics['intermittency']['uncertainty'] = {'status':diagnostics['intermittency']['inference']['status'],
             'reference':'group.intermittency.inference','scope':'极端事件 Fano 置换检验；不覆盖 RMS 或 3σ 片段长度'}
         conditional, residual_arrays = conditional_diagnostics(sampled, config, str(asset)+"\0"+str(path))
+        diagnostics["pareto"] = tail_diagnostics_by_scale(sampled, config, str(asset)+"\0"+str(path))
+        segments = {row["segment"]: row for row in conditional["segments"]}
+        for arrays in residual_arrays:
+            segments[arrays["segment"]]["pareto"] = {
+                field: sides(arrays[field]) for field in ("raw", "standardized_residual")}
         diagnostics["conditional_tails"] = conditional
         diagnostics["uncertainty"] = uncertainty_diagnostics(sampled, config, seed_key=str(asset)+"\0"+str(path))
         diagnostics["dependence_uncertainty"] = dependence_uncertainty(sampled, config)
@@ -603,6 +652,9 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, diagnostics["dependence_uncertainty"], config, output_dir, group_id)
+        new_paths, new_images = _pareto_plots(diagnostics["pareto"], sampled.log_return.to_numpy(), output_dir, group_id)
+        paths.update(new_paths)
+        embedded.update(new_images)
         new_paths, new_images = _tail_plot(diagnostics["tail_diagnostics"], output_dir, group_id)
         paths.update(new_paths)
         embedded.update(new_images)

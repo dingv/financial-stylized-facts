@@ -32,7 +32,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     text = (out / "index.html").read_text()
     assert '<script>alert("x")</script>' not in text
     assert "&lt;script&gt;" in text
-    assert text.count("data:image/png;base64,") == 24
+    assert text.count("data:image/png;base64,") == 26
     assert "path-select" in text and "评估总览" in text
     numerical = (out / "results.json").read_text()
     assert "NaN" not in numerical and "Infinity" not in numerical
@@ -60,7 +60,7 @@ def test_end_to_end_reports_are_separate_and_safe(tmp_path):
     assert "通用教学文档" in text
     assert all(len(g["findings"]["by_fact"]) == 11 for g in result["groups"])
     assert result["groups"][0]["findings"]["by_fact"]["2"]["status"] == "zero_variance"
-    assert len(list((out / "figures").glob("*.png"))) == 26
+    assert len(list((out / "figures").glob("*.png"))) == 28
     tail = pd.read_csv(out/"tail_diagnostics.csv")
     assert set(tail.path_id) == {"constant", "gauss"}
     assert tail[tail.path_id == "constant"].status.eq("zero_variance").all()
@@ -135,7 +135,7 @@ def test_cli_accepts_scale_window_and_threshold_settings(tmp_path):
     assert set(intervals.proxy) == {'absolute','squared'}
     assert '正 lag：成交量在前' in (out/'index.html').read_text()
     assert result["groups"][0]["timescale_asymmetry"]["status"] == "computed"
-    assert (out/"index.html").read_text().count("data:image/png;base64,") == 14
+    assert (out/"index.html").read_text().count("data:image/png;base64,") == 16
     assert pd.read_csv(out/"timescale.csv").separation_seconds.iloc[0] == 180
 
 
@@ -167,7 +167,7 @@ def test_conditional_report_exports_aligned_residuals(tmp_path):
     assert result["groups"][0]["asymmetry"]["uncertainty"]["metrics"] == ["skewness", "quantile_skewness"]
     text = (out/"index.html").read_text()
     assert "连续段 1" in text
-    assert text.count("data:image/png;base64,") == 13
+    assert text.count("data:image/png;base64,") == 15
     fp = pd.read_csv(out/"first_passage.csv")
     assert len(fp) == 120 and set(fp.direction) == {"up","down"}
     assert fp.elapsed_seconds.iloc[-1] == 1200
