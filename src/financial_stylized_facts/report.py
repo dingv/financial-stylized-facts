@@ -529,6 +529,39 @@ def _diagnostic_plots(sampled, diagnostics, rms, config, directory, group_id):
     return paths, embedded
 
 
+def _absolute_decay_plot(primary, directory, group_id):
+    rows = primary["rows"]
+    if not any(row["acf"] is not None for row in rows):
+        return {}, {}
+    fig = _figure(height=4.2)
+    ax = fig.subplots()
+    k = np.array([row["lag"] for row in rows])
+    acf, lower, upper = (np.array([row[field] for row in rows], dtype=float)
+                         for field in ("acf","lower","upper"))
+    positive = np.all(acf[np.isfinite(acf)] > 0) and np.all(lower[np.isfinite(lower)] > 0)
+    ax.set(xscale="log", yscale="log" if positive else "linear",
+           xlabel="Lag (base observations)", ylabel="Absolute-return correlation")
+    if not positive:
+        ax.axhline(0, color="#999", lw=.8)
+    if np.any(np.isfinite(lower)):
+        ax.fill_between(k, lower, upper, color="#83b6c7", alpha=.32, label="Pointwise 95% interval")
+    ax.plot(k, acf, color="#246176", lw=1.35, label="Observed ACF")
+    if primary["beta"] is not None:
+        fit_lags = k[k >= primary["start"]]
+        ax.plot(fit_lags, primary["amplitude"]*fit_lags**-primary["beta"], "--",
+                color="#af511e", label=f"Power-law fit from lag 5   β = {primary['beta']:.3f}")
+    from matplotlib.ticker import FuncFormatter
+    ticks = sorted({1,5,primary["end"]} | {j for j in (2,10,20,50,100) if j <= primary["end"]})
+    ax.set_xticks(ticks, labels=[str(j) for j in ticks])
+    if positive:
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda n,_: f"{n:g}"))
+        ax.yaxis.set_minor_formatter(FuncFormatter(lambda n,_: f"{n:g}" if n*10 < 2 else ""))
+    ax.legend(fontsize=9)
+    _style(ax)
+    path = f"figures/{group_id}-absolute-decay.png"
+    return {"absolute_decay":path}, {"absolute_decay":_save(fig,directory/path)}
+
+
 def _evidence_plots(diagnostics, config, directory, group_id):
     paths,images={},{}
     fig=_figure(height=3.2);ax=fig.subplots()
@@ -543,6 +576,12 @@ def _evidence_plots(diagnostics, config, directory, group_id):
     ax.set(xlabel='Window (base return observations)',ylabel='Count variance / mean',title='Extreme-event concentration')
     _style(ax);paths['fano']=f'figures/{group_id}-fano.png';images['fano']=_save(fig,directory/paths['fano'])
     fig=_figure(height=3.5);axes=fig.subplots(1,2)
+    vp = diagnostics["volatility_persistence"]
+    primary_paths, primary_images = _absolute_decay_plot(vp["loglog_decay"], directory, group_id)
+    paths.update(primary_paths)
+    images.update(primary_images)
+    from .decay import persistence_evidence
+    vp["supplementary_persistence"] = persistence_evidence(vp["long_memory_test"])
     comparison=diagnostics['volatility_persistence']['decay_comparison']
     acf=diagnostics['volatility_persistence']['full']
     for ax,start in zip(axes,(1,5)):
@@ -626,7 +665,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
         "provenance": {"input_sha256": input_hash, "input_name": input_path.name, "input_rows": len(prices),
                        "package_version": __version__, "python": platform.python_version(),
                        "dependencies": {p: version(p) for p in ["numpy", "pandas", "scipy", "matplotlib", "jinja2"]}},
-        "coverage": [{"fact_id": i, "name": name, "status": "finite_range_model_comparison_and_short_memory_test" if i==8 else "randomization_test" if i==5 else "parametric_bootstrap_test" if i==7 else "descriptive_and_interval_assessment"} for i, name in enumerate(FACT_NAMES, 1)],
+        "coverage": [{"fact_id": i, "name": name, "status": "absolute_return_loglog_decay" if i==8 else "randomization_test" if i==5 else "parametric_bootstrap_test" if i==7 else "descriptive_and_interval_assessment"} for i, name in enumerate(FACT_NAMES, 1)],
         "groups": [],
     }
     source = Path(__file__).parent
@@ -648,7 +687,7 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     observation_rows = []
     assessment_rows = []
     tail_rows = []
-    fano_rows, reference_rows, decay_rows = [], [], []
+    fano_rows, reference_rows, decay_rows, loglog_rows = [], [], [], []
     for index, (asset, path, sampled, quality, metrics, acfs, diagnostics, rms, residual_arrays) in enumerate(groups):
         group_id = f"g{index:04d}"
         paths, embedded, density = _plots(sampled, metrics, acfs, diagnostics["dependence_uncertainty"], config, output_dir, group_id)
@@ -686,6 +725,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
                     'replications':ref.get('reps'),'failed_refits':ref.get('failed_reps'),
                     'joint_tail_p':ref.get('joint_tail_p'),'family_adjusted_tail_p':ref.get('family_adjusted_tail_p'),
                     'adequacy_p':ref.get('adequacy_p'),'tail_supported':ref.get('tail_supported'),**test})
+        for row in diagnostics["volatility_persistence"]["loglog_decay"]["rows"]:
+            loglog_rows.append({"asset_id":asset,"path_id":path,**row})
         for row in diagnostics['volatility_persistence']['decay_comparison']['rows']:
             for kind,fit in row.get('models',{}).items() or [('unavailable',{})]:
                 decay_rows.append({'asset_id':asset,'path_id':path,**{k:v for k,v in row.items() if k!='models'},
@@ -809,6 +850,8 @@ def analyze_csv(input_path, output_dir, config=None, title="金融市场 · 统�
     pd.DataFrame(assessment_rows).to_csv(output_dir / "assessment.csv", index=False)
     pd.DataFrame(fano_rows).to_csv(output_dir/'intermittency.csv',index=False)
     pd.DataFrame(reference_rows).to_csv(output_dir/'conditional_inference.csv',index=False)
+    pd.DataFrame(loglog_rows, columns=["asset_id","path_id","lag","pairs","acf","lower","upper"]).to_csv(
+        output_dir/"absolute_decay.csv", index=False)
     pd.DataFrame(decay_rows).to_csv(output_dir/'decay_models.csv',index=False)
     pd.DataFrame(summary_rows).to_csv(output_dir / "summary.csv", index=False)
     pd.DataFrame(tail_rows).to_csv(output_dir / "tail_diagnostics.csv", index=False)

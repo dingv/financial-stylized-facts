@@ -90,6 +90,8 @@ def main(argv=None):
     analyze.add_argument("--intermittency-quantile", type=float, default=.99)
     analyze.add_argument("--permutation-reps", type=int, default=999)
     analyze.add_argument("--permutation-max-work", type=int, default=20000000)
+    analyze.add_argument("--decay-bootstrap-reps", type=int, default=1000)
+    analyze.add_argument("--decay-bootstrap-max-work", type=int, default=100000000)
     analyze.add_argument("--conditional-bootstrap-reps", type=int, default=199)
     analyze.add_argument("--conditional-bootstrap-max-work", type=int, default=2000000)
     analyze.add_argument("--title", default="金融市场 · 统计评估报告")

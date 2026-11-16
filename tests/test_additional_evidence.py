@@ -155,12 +155,13 @@ def test_assessment_uses_tests_and_keeps_uncertainty_visible():
     assert assess(g,c)['by_fact']['5']['conclusion']=='supported'
     g['intermittency']['inference']['rows'][1]['reject']=False
     assert assess(g,c)['by_fact']['5']['conclusion']=='indicative'
+    original = assess(g,c)['by_fact']['8']
     g['volatility_persistence']['decay_comparison']={'status':'computed','rows':[
         dict(period='full',**compare_decay(curve('exponential'),1,100,1000)),
         dict(period='full',**compare_decay(curve('exponential'),5,100,1000))],
         'stable_slow_power_pattern':False}
     a=assess(g,c)['by_fact']['8']
-    assert '指数' in a['label'] and a['evidence_level']=='model'
+    assert a == original
 
 
 def test_decay_accounts_for_fewer_pairs_at_session_edges():

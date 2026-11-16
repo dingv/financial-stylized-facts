@@ -6,11 +6,11 @@
     "n_returns": 3269,
     "excess_kurtosis": 105.75802536354945,
     "report": "AAPL.html",
-    "report_sha256": "a96a1a5708518bc7adfbe5c385127abda7a812ef05ad004f4768276e2569a7c3",
+    "report_sha256": "711ed260ef5649c148035af9c4ccc22e2aebb3624faa904401360c6acb2d06ab",
     "summary": "AAPL-summary.csv",
     "summary_sha256": "6ec44eccc3cfc75d8960958a68e8d0bb6a631d91c26beb11959be6db5b69ead6",
     "assessment": "AAPL-assessment.csv",
-    "assessment_sha256": "ef8b26a92c6a89b93493e64413701f58fcee9c2f3ffb0844771497e79079080a",
+    "assessment_sha256": "9f5a5b84940428f59d664adb2cd21722cc9f090d84c69dca964d63da70361104",
     "intermittency": "AAPL-intermittency.csv",
     "intermittency_sha256": "d31dd95fc0919184d89b7a4e53e382c8f9284501d2ac06aad06971758ba3e3ca",
     "conditional_inference": "AAPL-conditional-inference.csv",
@@ -23,7 +23,9 @@
     "volume_lag_intervals_sha256": "a98e522eae4410ce45cd3e49b8a9c22a23bb4eae0207361184cf42196061ff33",
     "primary_dependence_intervals": "AAPL-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "b6b47a85f9b816f1b9c8fe933de4fa791635123ae1eceb59fbbbb63b1090e731",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "AAPL-absolute-decay.csv",
+    "absolute_decay_sha256": "ae5f54f138ec1ce1936ff50e4472fa276d9b79536851f27aa1f7cc260756057f"
   },
   {
     "dataset": "MSFT",
@@ -32,11 +34,11 @@
     "n_returns": 3269,
     "excess_kurtosis": 9.137434735582286,
     "report": "MSFT.html",
-    "report_sha256": "05df2c164b33a43d29f00574ac14571628269bcd7e4697db58e4782e1b08db84",
+    "report_sha256": "ecb0e509d71d61d2498c5fdd7366f53955c39d0d3fac40340d0480bfb01e423d",
     "summary": "MSFT-summary.csv",
     "summary_sha256": "723daba0ebef3ae20be437b0e9b1a363dd57d07c0989fb9cbcecdf70f8d0c5ad",
     "assessment": "MSFT-assessment.csv",
-    "assessment_sha256": "f2c1fb3f8e39b5da66bf33b40fb49f37e6b96b38e4781d6a3fbccabc9edb17ad",
+    "assessment_sha256": "c0c5a7ddbd6c01f645eb4b738f01f9e0ddda96c5a2ac0ee0e39d74d632c02692",
     "intermittency": "MSFT-intermittency.csv",
     "intermittency_sha256": "299a5f0ccc115053101629a64b01accf95d4ed15e659c14ef337ae72863338d9",
     "conditional_inference": "MSFT-conditional-inference.csv",
@@ -49,7 +51,9 @@
     "volume_lag_intervals_sha256": "3123d7a64df4eb983b7f46c9bd40b601ba52bdedda7cee576f895c3a697a5544",
     "primary_dependence_intervals": "MSFT-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "3f3e548b8ef8e4d1dbe0db3fdd12f1227f5f4ee84a086e57cd89b1190bf9eef4",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "MSFT-absolute-decay.csv",
+    "absolute_decay_sha256": "54702a53f375b82c72970c928de18c86d7976cdd8bb05211e4b7825f5a767c16"
   },
   {
     "dataset": "EURUSD",
@@ -58,11 +62,11 @@
     "n_returns": 4000,
     "excess_kurtosis": 1.7744301204262385,
     "report": "EURUSD.html",
-    "report_sha256": "38fd9bda433f6877171af92720d2b02c1ba781fecb27a97ccc1db5c0ae5a2ea1",
+    "report_sha256": "5cfcfa9414f6e21753d56f28ac5887faf4c463c6513fae1357a6b711542cf4c1",
     "summary": "EURUSD-summary.csv",
     "summary_sha256": "d35fda9122440661df3911b4c3bfc33ddd8aee3bc44af10ed1f3e24dfbbd697d",
     "assessment": "EURUSD-assessment.csv",
-    "assessment_sha256": "2b9c8fe9301ea604671e99333ad5bf1348292330e675d34d00e3c0d77ef377ca",
+    "assessment_sha256": "3a7b04ff0eb9b8e2aa39361f84131f52bf1a28805f4b0846695338bd5c402e9b",
     "intermittency": "EURUSD-intermittency.csv",
     "intermittency_sha256": "8012e404da9b6adf44d23f950308478497d7383600ddf0fa2f68c3b312a226fd",
     "conditional_inference": "EURUSD-conditional-inference.csv",
@@ -71,7 +75,9 @@
     "decay_models_sha256": "c8389bd186aee8a3b117da8cf44e5144e85b141fd59e5e32f445c7d876485b5f",
     "primary_dependence_intervals": "EURUSD-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "2359b84db37ac2d141b736ad34da3c21b5e40050d0d43908bd4fdee4fafde7c8",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "EURUSD-absolute-decay.csv",
+    "absolute_decay_sha256": "9deb1d0c541f235647d155138749e18bf81157a2a9e6bfef47ad1151e875bcc5"
   },
   {
     "dataset": "USDJPY",
@@ -80,11 +86,11 @@
     "n_returns": 4000,
     "excess_kurtosis": 4.108144755627563,
     "report": "USDJPY.html",
-    "report_sha256": "28496c345f7ea04d74f260fb5addeb5f8aac350cb65e3db6922f1850b609584f",
+    "report_sha256": "8193002ba38eac63e2dda6125e113ca4fa7399ef2700eb197d165b48562d5ee8",
     "summary": "USDJPY-summary.csv",
     "summary_sha256": "57e3e110716e9c992049a5762b0822c3cc72c9317251dd0981a235c7c403ca36",
     "assessment": "USDJPY-assessment.csv",
-    "assessment_sha256": "a1d93134c3f0f0770335f43d88209eef9a5a462c4904a2276015ed0b93f1f9b5",
+    "assessment_sha256": "2f6be518b03b2596d3f1316f064487f0b23a74c86d31bfce939c63428439d612",
     "intermittency": "USDJPY-intermittency.csv",
     "intermittency_sha256": "3ce47b193c4482f7e44cfab897818d93d2207a5b44d45c1e9ca56a68b905ce86",
     "conditional_inference": "USDJPY-conditional-inference.csv",
@@ -93,7 +99,9 @@
     "decay_models_sha256": "53c2f5adcb2d502e70733a5876c063458b2df7664e2d5ce7ef7d2e8acf833f35",
     "primary_dependence_intervals": "USDJPY-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "a8783a6bafa2c5c98b583b7da597ad8bfd27ac46d463449694c8cb15b390783d",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "USDJPY-absolute-decay.csv",
+    "absolute_decay_sha256": "89d7f338fe9b53ce2344139f0b83b18606bbeec113968ca140e57f6027acfcbc"
   },
   {
     "dataset": "BTC",
@@ -102,11 +110,11 @@
     "n_returns": 2191,
     "excess_kurtosis": 23.054121155471634,
     "report": "BTC.html",
-    "report_sha256": "34953d8065e2e97dbc546fe1708057faac9ffd324e75a05df8a3bd4d4fd773c4",
+    "report_sha256": "57c3047cc4ec6197ed7582a6cf49bfd4d32e3fe265595744ca72e7717f4fbd33",
     "summary": "BTC-summary.csv",
     "summary_sha256": "c77c3ee3c2ed012db34afa9612035ae1079071dbec19d148a3321708beba57fd",
     "assessment": "BTC-assessment.csv",
-    "assessment_sha256": "5f2c75bc6e0d60790b93be52958cf39ced71de61c1a8cee66608e2be65f444da",
+    "assessment_sha256": "7ccd0b2c815bcbbcaa02455b00a94c1c2289e98472a601e68a3da311761a29f9",
     "intermittency": "BTC-intermittency.csv",
     "intermittency_sha256": "c71813f7198f5cfa71af12380e882b7d6ccb0b2df2c1c527091261b43a96ad6a",
     "conditional_inference": "BTC-conditional-inference.csv",
@@ -122,7 +130,9 @@
     "upstream_sha256": "06495ff8e643432e6948b7b4686ce44fc106217287dabdc1b38351d9ddec46c3",
     "primary_dependence_intervals": "BTC-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "fe96201d00b57a17dfc9dec14cee78babecc0fea34c27788e09b8a119cfe5163",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "BTC-absolute-decay.csv",
+    "absolute_decay_sha256": "e7d9fe1d53191cc1ca93631c86f0f7f688f7f6df43a3f0949fc818b39d9e23bc"
   },
   {
     "dataset": "ETH",
@@ -131,11 +141,11 @@
     "n_returns": 2191,
     "excess_kurtosis": 16.61264714593378,
     "report": "ETH.html",
-    "report_sha256": "ec0308724f170345dad21aa47042f255f48c704b607198636cb46f1c4ed5593d",
+    "report_sha256": "bdfb619e2747217280f48fe5fb79690454caebd5b57a4eb5a7cca65510b94897",
     "summary": "ETH-summary.csv",
     "summary_sha256": "9bd27bbb68f8576ad13f8f6162fd66aba0da2fd871402a6ae9da7d14fd865c84",
     "assessment": "ETH-assessment.csv",
-    "assessment_sha256": "9c2f1ac1894475244859e93fed7a67aa5c8211fd7d348fb2c7137b678a2eec0b",
+    "assessment_sha256": "3c5be9d030fb5938facbe6b82e8b69674cd89409966da24f277c346c07cdcea8",
     "intermittency": "ETH-intermittency.csv",
     "intermittency_sha256": "4c32f9f5109d429cdd911efd631e51ef3059d466c3b0716f2517f2257827ddf2",
     "conditional_inference": "ETH-conditional-inference.csv",
@@ -151,7 +161,9 @@
     "upstream_sha256": "46b18f3df967405374b1f6ee8a3d11ee1b7a5b176ac9fb4342caf6bf8648f2cc",
     "primary_dependence_intervals": "ETH-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "0926cdd22ca826493b97cefd36a076076fc98b947b52664e9b119bbf475cf0d2",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "ETH-absolute-decay.csv",
+    "absolute_decay_sha256": "54da058452e9fd0a912fc6c08b6a0884d6119dbc50fc790e53e0ef19398c6eec"
   },
   {
     "dataset": "BRENT",
@@ -160,11 +172,11 @@
     "n_returns": 4046,
     "excess_kurtosis": 111.81099536134231,
     "report": "BRENT.html",
-    "report_sha256": "a02ab0a738ab9c172ca487d2149eef81cbc282844743a815050768787607c500",
+    "report_sha256": "576bc1da72a92b2565a8ef9d9e6c780712f0c17eba4af1ff3d878059405046a4",
     "summary": "BRENT-summary.csv",
     "summary_sha256": "8bab8164f60ca1a8990482bff8fdeba68c850384e25c8ea1ef67b1b5e6eb5c27",
     "assessment": "BRENT-assessment.csv",
-    "assessment_sha256": "4d3255870bc64aeb06c82ec397019e096e2905d61434c9100d35a6cdd68cbf38",
+    "assessment_sha256": "241bc7b677a87bfd9522553f19dc2599fa4646075d0354037b76acb5ca209705",
     "intermittency": "BRENT-intermittency.csv",
     "intermittency_sha256": "561d3989bfe4c0bbccd316427f199b3cf7789ac71f32ab5a39ddfd4ccc4b16ff",
     "conditional_inference": "BRENT-conditional-inference.csv",
@@ -176,7 +188,9 @@
     "upstream_sha256": "c7c1e1eeb321fa5982f74747886963b35bd2df3c2f63960271c353421d5830ca",
     "primary_dependence_intervals": "BRENT-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "b106ae9f27b15a88ec5a9e9e536ce2f0419a270fcaa43e803180c5e35cc5303f",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "BRENT-absolute-decay.csv",
+    "absolute_decay_sha256": "85eedd4cc704701b99ea04fff6c9f3d6a605a99268a7e855b20d339309e084f2"
   },
   {
     "dataset": "HENRYHUB",
@@ -185,11 +199,11 @@
     "n_returns": 4034,
     "excess_kurtosis": 119.98224203022201,
     "report": "HENRYHUB.html",
-    "report_sha256": "2dc8ba5a386e4c78c082466852266c86eb3494ca9be71edc07fda5c91b0c989f",
+    "report_sha256": "421d2772606c8125007e786cf5657b854452d8d96f40b7668e71d4cd27a6f05f",
     "summary": "HENRYHUB-summary.csv",
     "summary_sha256": "7d529bb56307a509894d29a837ed64deb4ad6e8d5112d65bb27db5da7132c36a",
     "assessment": "HENRYHUB-assessment.csv",
-    "assessment_sha256": "2704b40e766c5a46eba31102108cf04a0ca70ccd12bba2fe05b81c7b836c49b6",
+    "assessment_sha256": "045a227de17e8cbbd45019c61ef700c3a4d45d767bdfdfd38923a5e143791970",
     "intermittency": "HENRYHUB-intermittency.csv",
     "intermittency_sha256": "e80b93a3af04a20a83a35e469b0d7ce2da400d05e915de0b6c92ee161882c858",
     "conditional_inference": "HENRYHUB-conditional-inference.csv",
@@ -201,7 +215,9 @@
     "upstream_sha256": "a8e08f07c0321fcf5466f3d4aee938589e00758a9e3e148be2fd8b43d01caaf1",
     "primary_dependence_intervals": "HENRYHUB-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "ecca4f381a77294c3df1bf2621637a3d224313b01676abe0c84fb04678650246",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "HENRYHUB-absolute-decay.csv",
+    "absolute_decay_sha256": "f6f9bc2bc769ce7245999a1e03f9a8b874b633a4242cc687b2c26db69f4cfe23"
   },
   {
     "dataset": "GOLD_UAH",
@@ -210,12 +226,12 @@
     "n_returns": 4173,
     "excess_kurtosis": 61.226108764444746,
     "report": "GOLD_UAH.html",
-    "assessment_rule_version": 4,
-    "report_sha256": "dc04bfd0b3eb44745b8ea19adf33a5c579874a746fcd1e7b2d84f982ba8c1ae0",
+    "assessment_rule_version": 5,
+    "report_sha256": "c98411ec8a2b429171aba0026e7f29ce62606f0be9f6926e08fe186432318732",
     "summary": "GOLD_UAH-summary.csv",
     "summary_sha256": "471597b5e7f5693dbd3442311321b04fdf07f87ea8dcc80c5dd8ac262d6094b8",
     "assessment": "GOLD_UAH-assessment.csv",
-    "assessment_sha256": "9310d2154c6293e90a1d6923687ba28cb245abfd4e9e08e4a0496b706bcde68a",
+    "assessment_sha256": "3ea8209a721d45320896092f47b0bed55b3e2cae679b13ab68266934fca5624f",
     "intermittency": "GOLD_UAH-intermittency.csv",
     "intermittency_sha256": "5b1190161c762fab42912dc2fd15c649fc20bae40b3d705a9a1e7ac6f380cee5",
     "conditional_inference": "GOLD_UAH-conditional-inference.csv",
@@ -223,7 +239,9 @@
     "decay_models": "GOLD_UAH-decay-models.csv",
     "decay_models_sha256": "73a16278ac1f047782b3d9cd6d4eb7c90a70e6e60edab0fe7803aab4fce7ab94",
     "primary_dependence_intervals": "GOLD_UAH-primary-dependence-intervals.csv",
-    "primary_dependence_intervals_sha256": "e6883e27471fcff0d0eab2321a61a10f91793db97d09c57baac883fa6659d7ce"
+    "primary_dependence_intervals_sha256": "e6883e27471fcff0d0eab2321a61a10f91793db97d09c57baac883fa6659d7ce",
+    "absolute_decay": "GOLD_UAH-absolute-decay.csv",
+    "absolute_decay_sha256": "6e3fc2e373a4c8d2ea2672d6c5b3854521012170fa9e51ecf83066cc6ad4bc0b"
   },
   {
     "dataset": "SILVER_UAH",
@@ -232,12 +250,12 @@
     "n_returns": 4173,
     "excess_kurtosis": 15.893445711967857,
     "report": "SILVER_UAH.html",
-    "assessment_rule_version": 4,
-    "report_sha256": "afc4f2fa2dbd2ac7b1ffbf227ff48c10ec1a43cb9294b44ea30f270da4e15fbe",
+    "assessment_rule_version": 5,
+    "report_sha256": "b70dd3d2963bda7bf90d826fbee1dd87a8e0737a1069952b8280ee0e2d0557f1",
     "summary": "SILVER_UAH-summary.csv",
     "summary_sha256": "fc9246320e448516a0bfbb88f7049839183ee210d7e817dbc7b30f1ddc16733f",
     "assessment": "SILVER_UAH-assessment.csv",
-    "assessment_sha256": "2017dfe3dd9536a7094822bc3eec8745d6286ebc3dfdd3558513aa30c4c1e25e",
+    "assessment_sha256": "b995d26eeda2ffb206099efb689c6695da0acdaaf04be793801db03e1936f06b",
     "intermittency": "SILVER_UAH-intermittency.csv",
     "intermittency_sha256": "bd7040870989664e90a59099e002057f31649564fd784c5c9f24bf8ebec3d0f7",
     "conditional_inference": "SILVER_UAH-conditional-inference.csv",
@@ -245,7 +263,9 @@
     "decay_models": "SILVER_UAH-decay-models.csv",
     "decay_models_sha256": "6807d5689e2037749d7a08bd901a78481b6e0f8f76503adfbc0ea958b46a22c2",
     "primary_dependence_intervals": "SILVER_UAH-primary-dependence-intervals.csv",
-    "primary_dependence_intervals_sha256": "cac5f52d07afed74265815ba8b724a607e3160166a3f82693a91b414c1319fd6"
+    "primary_dependence_intervals_sha256": "cac5f52d07afed74265815ba8b724a607e3160166a3f82693a91b414c1319fd6",
+    "absolute_decay": "SILVER_UAH-absolute-decay.csv",
+    "absolute_decay_sha256": "af238388227ae99c411029e39849657cfad82bc9b7efe7a3b45483baa810deb1"
   },
   {
     "dataset": "BTC_FUT_202512",
@@ -254,11 +274,11 @@
     "n_returns": 1463,
     "excess_kurtosis": 4.41157054348838,
     "report": "BTC_FUT_202512.html",
-    "report_sha256": "55e4e4decf07694cebf6faa71075f06a2e727a4baba5792601321b4ce943742d",
+    "report_sha256": "2ab7abc6cd6485ce09181623cf8c430f3f7df99e0d94a91f13d5039b17777fac",
     "summary": "BTC_FUT_202512-summary.csv",
     "summary_sha256": "e2457dc6a8689ada7e2c87b23ceadd87faffb7276c869155e7d4ca58a624bee4",
     "assessment": "BTC_FUT_202512-assessment.csv",
-    "assessment_sha256": "fa3966c7d0860c8bd0591463bf20ccd7b8b49439ad952f889ba1d50e41627540",
+    "assessment_sha256": "5a283511f2cd103525e6bc80ddf43b83da73433c3bc23e0b1704eda88536ed5b",
     "intermittency": "BTC_FUT_202512-intermittency.csv",
     "intermittency_sha256": "ba12bf906fbee9222786f1985271f062c195210f806c96b722ae427a7a0566a5",
     "conditional_inference": "BTC_FUT_202512-conditional-inference.csv",
@@ -275,7 +295,9 @@
     "sample_kind": "hourly",
     "primary_dependence_intervals": "BTC_FUT_202512-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "78513b1de5eb10aa8bf4d5c4595d545ea18c9b015f87d3147751822b8ca1d069",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "BTC_FUT_202512-absolute-decay.csv",
+    "absolute_decay_sha256": "24717985fe098cbe18bed4bc97f05a7bb213c91b55179389d090cdeab6f373cc"
   },
   {
     "dataset": "ETH_FUT_202512",
@@ -284,11 +306,11 @@
     "n_returns": 1463,
     "excess_kurtosis": 3.9623764470538614,
     "report": "ETH_FUT_202512.html",
-    "report_sha256": "6869639a95458dc5106543a1b47aadc065b92caf437281af46e280a22dfdbb4d",
+    "report_sha256": "caf2d1591f64a5746143c8b108b8ba71706c988d26237deaff35e53cd2b15783",
     "summary": "ETH_FUT_202512-summary.csv",
     "summary_sha256": "6bb4e5517c0f80d81e680f5e56585beb708ab28d2846fb534f639a756072560c",
     "assessment": "ETH_FUT_202512-assessment.csv",
-    "assessment_sha256": "9c1f32e3e9139bf335682858812344e52801c3f2b4477001233508bd6dfdd8f9",
+    "assessment_sha256": "65eeb21ba60200e0e6af2e95400f0fa15dd482d2fa1757f967a9bfa72af36c77",
     "intermittency": "ETH_FUT_202512-intermittency.csv",
     "intermittency_sha256": "179194226e86ce0bc31c0c72aabac2cded9163cee6c73451e6ae16d091c5218e",
     "conditional_inference": "ETH_FUT_202512-conditional-inference.csv",
@@ -305,6 +327,8 @@
     "sample_kind": "hourly",
     "primary_dependence_intervals": "ETH_FUT_202512-primary-dependence-intervals.csv",
     "primary_dependence_intervals_sha256": "2b7f8c22a62e902d0242f95e791844c1915c0cdef7f5d3fed4d73919eebad072",
-    "assessment_rule_version": 4
+    "assessment_rule_version": 5,
+    "absolute_decay": "ETH_FUT_202512-absolute-decay.csv",
+    "absolute_decay_sha256": "fb033d8202e2313b30f068a658b3df25c50afe6b50542c17ff25b400779da2f0"
   }
 ]

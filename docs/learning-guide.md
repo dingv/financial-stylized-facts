@@ -129,22 +129,9 @@ sigma[t]² = omega + alpha × e[t−1]² + beta × sigma[t−1]²
 
 ## 8. 波动相关缓慢衰减
 
-问题是：波动的相关是否延续到比前几步更长的范围？报告提供长范围绝对收益 ACF，以及按时间分段的对照。若全程持续为正、分段后消失，要考虑波动状态变化的作用。
+第 8 项在预设 lag 5–K 的完整范围内比较绝对收益的逐 lag 配对 Pearson 相关。各点均为正时，在双对数坐标拟合直线。若 0<β<1、远端低于起点，且远端逐点 95% 区间下界大于零，报告“获部分支持”（indicative）。β 的 0.2–0.4 仅作经验参照。非正相关点保留在原位，不取对数或挑选子区间；缺少有效配对的预设范围标为无法评估。
 
-Lo 修正 R/S 检查累计偏离相对于短期相关调整后方差的大小。多个窗口和带宽同时报告，非零带宽组合的渐近 p 值做 Bonferroni 修正。`q=0` 仅作独立序列参照。
-
-程序直接比较两条衰减曲线：
-
-```text
-幂律：ACF(k) ≈ A × (k/k0)^(-β)
-指数：ACF(k) ≈ A × exp(-λ × (k−k0))
-```
-
-β 越小，幂律衰减越慢；指数模型有固定的相对衰减速度。报告给 β、R² 和两种模型的 RMSE。两种曲线都在 ACF 原尺度拟合，**负相关点也保留**，不会只挑正点画双对数直线。拟合还计入各 lag 的配对覆盖，减少段边界造成的机械衰减影响。
-
-比较预设的 lag 1–K、5–K 两个范围。除全范围拟合误差外，还用前 2/3 的滞后拟合、预测剩余滞后的 ACF。只有两项误差都改善超过 10%，才说某个模型在该范围更合适。这里的“预测”是曲线外推到远端 lag，不是预测未来价格，也不是独立留出样本的统计检验。
-
-跨区间、分段均偏向缓慢幂律还要求：所有时间分段和两种范围一致，0<β<1、R²≥0.2、至少 80% ACF 点为正、参数未触及边界。这是可复核的有限尺度判据；误差阈值属于本库约定。另用 Lo 检验判断持续性是否超出短期依赖参照：全段和两个半段、所有非零带宽都在上尾拒绝，才写“长程持续性有检验支持”。原有全窗口多重比较校正仍保留；下尾拒绝不能算持续性支持。拟合形态与检验结果分别保存，有限数据仍不能证明无限期长记忆。
+从短到长读主图：先看远端是否保持正相关，再看曲线怎样下降。幂律与指数的原尺度比较、分段自相关和 Lo 修正 R/S 可在补充结果展开。
 
 ## 9. 杠杆效应
 
@@ -194,7 +181,7 @@ D(k) = corr(F[t], C[t+k]) − corr(C[t], F[t+k])
 
 **涨跌不对称**主要看分位数偏度（四分位形状），用固定主要块长的区间判断方向；普通偏度、左右尾图与首达时间继续展示。分位数偏度接近零时，仍可存在远尾差异。
 
-**缓慢衰减**分别读全样本迹象和分段一致性。全样本出现持续性、半段不一致，会直接写在结论中。持续性可能来自状态变化，不能由一个 R/S 结果确定机制。
+**缓慢衰减**以预设范围的衰减形态和远端区间为主。
 
 计算结果与推断状态分开：点估计可计算，但区间样本不足时，标明主要检验不可用；未检出线性相关也不改写为已证明相关足够小。详细公式与开源实现对照见[评估方法](assessment-methods.md)。
 
@@ -209,7 +196,7 @@ for group in result["groups"]:
 
 `assessment.csv` 与 HTML 使用同一份结果。`conclusion` 表示具体结论，`evidence_level` 表示区间、模拟检验、模型比较、描述或不可评估，`computation_status` 表示底层计算状态，`inference_status` 单独记录主要推断是否完成，`rule_id` 标识规则版本。不要把所有 `supported` 加起来当作市场总分；例如第 1 项“检出相关”恰好指出与低线性相关事实的差异。
 
-第 3、11 项另提供 `asymmetry_evidence`（`supported/not_detected/inconclusive/unavailable`）、`direction`、`classical_alignment`（`consistent/opposite/mixed/inconclusive/not_evaluated`）及 `directional_basis`。`not_detected` 指区间未检出，不等于证明对称。第 3 项的 `direction` 指分位数偏度方向，证据强弱必须同时读取；第 11 项的方向基于取得支持的滞后。规则版本为 4，JSON 格式版本为 0.16。
+第 3、11 项另提供 `asymmetry_evidence`（`supported/not_detected/inconclusive/unavailable`）、`direction`、`classical_alignment`（`consistent/opposite/mixed/inconclusive/not_evaluated`）及 `directional_basis`。`not_detected` 指区间未检出，不等于证明对称。第 3 项的 `direction` 指分位数偏度方向，证据强弱必须同时读取；第 11 项的方向基于取得支持的滞后。规则版本为 5，JSON 格式版本为 0.16。
 
 各项原始统计、区间、样本量和原因保存在 `results.json` 与对应 CSV；旧版 `findings` 和 `observations.csv` 仍保留，便于已有代码继续使用。新增三项证据的明细分别见 `intermittency.csv`、`conditional_inference.csv`、`decay_models.csv`。
 

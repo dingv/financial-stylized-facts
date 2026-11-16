@@ -90,5 +90,7 @@ def dependence_diagnostics(sampled, config):
                    "requested_max_lag": config.volatility_max_lag, "split_method": "chronological_equal_observation_slots",
                    "long_memory_test": long_memory_diagnostics(sampled,config)}
     from .decay import decay_diagnostics
+    from .absolute_decay import loglog_decay
+    persistence['loglog_decay'] = loglog_decay(segments, config)
     persistence['decay_comparison'] = decay_diagnostics(persistence, config)
     return {"leverage": leverage, "volatility_persistence": persistence}

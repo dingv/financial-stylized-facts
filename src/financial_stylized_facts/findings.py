@@ -129,19 +129,10 @@ def summarize(group, config, sampled):
         "负值表示较低收益与较大后续波动相伴；相关不是因果，外汇倒数报价还会改变收益符号。", ["leverage"])
 
     persistence = group["volatility_persistence"]
-    endpoint = config.volatility_max_lag
-    last_acf = at_lag(persistence["full"], endpoint)
-    text = f"在设定的 {lag_label(config, endpoint)} 滞后处，绝对收益相关为 {number(last_acf)}。"
-    if last_acf is None:
-        text += " 该终点不具备足够有效配对或序列方差；没有改用更短的滞后来代替。"
-    memory = persistence["long_memory_test"]
-    if memory["status"] == "computed":
-        text += (f" 修正 R/S 的 {memory['computed_tests']} 个可计算窗口/带宽组合中，"
-                 f"{memory['family_rejections']} 个在单路径多重比较修正后拒绝短期依赖零假设。")
-    else:
-        text += f" 修正 R/S 对照：{memory['reason']}。"
-    add(8, "computed" if last_acf is not None else "not_computable", text,
-        "远端 ACF 或修正 R/S 拒绝都不能单独证明长记忆；结构变化、重尾和带宽不足也会影响结果。不拒绝也不代表没有长记忆。", ["volatility_persistence"])
+    primary = persistence["loglog_decay"]
+    add(8, "computed" if primary["status"] == "computed" else "not_computable",
+        primary["summary"] + f" 终点对应 {lag_label(config, config.volatility_max_lag)}。", "预设范围的逐滞后 Pearson 相关及双对数拟合。",
+        ["volatility_persistence.loglog_decay"])
 
     volume = group["volume_volatility"]
     if volume["status"] == "computed":
@@ -184,5 +175,5 @@ def summarize(group, config, sampled):
     return {"method": "fixed_rules_from_current_path_metrics", "automatic_pass_fail": False,
             "overview": overview, "by_fact": dict(sorted(facts.items(), key=lambda item: int(item[0]))), "extreme_concentration": concentration,
             "display_rules": {"acf_and_leverage_lag": 1, "coarse_comparison_lag": 1,
-                              "persistence_lag": endpoint, "extreme_share_notice_threshold": .5,
+                              "persistence_lag": config.volatility_max_lag, "extreme_share_notice_threshold": .5,
                               "extreme_threshold_is_statistical_test": False}}

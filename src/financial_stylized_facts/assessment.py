@@ -7,11 +7,10 @@ from dataclasses import replace
 from scipy.stats import norm
 from .inference import holm_family
 
-from .decay import persistence_evidence
 
 from .findings import at_lag, lag_label, number
 
-RULE_VERSION = "4"
+RULE_VERSION = "5"
 NORMAL_TAIL_3 = erfc(3 / sqrt(2))
 FACT_NAMES = ["收益线性相关较弱", "厚尾", "涨跌不对称", "聚合高斯化", "间歇性", "波动聚集",
               "条件厚尾", "波动相关缓慢衰减", "杠杆效应", "成交量与波动相关", "时间尺度不对称"]
@@ -304,37 +303,17 @@ def assess(group, config):
             evidence={'segments':[{'segment':x['segment'],'tail_pattern':flag,'reference_test':ref} for x,flag,ref in zip(fitted,signs,references)]})
 
     vp = group["volatility_persistence"]
-    endpoint = at_lag(vp["full"], config.volatility_max_lag)
-    lm = vp["long_memory_test"]
-    decay=vp.get('decay_comparison',{})
-    full=[r for r in decay.get('rows',[]) if r['period']=='full' and r['status']=='computed']
-    if full:
-        primary=full[0];power=primary['models']['power'];exp=primary['models']['exponential']
-        stable=decay['stable_slow_power_pattern']
-        persistence_test=persistence_evidence(lm)
-        preference=[r['preferred'] for r in full]
-        label='跨区间、分段均偏向缓慢幂律衰减' if stable else '全路径偏向幂律，分段支持不足' if len(full)==2 and all(r.get('slow_power_pattern') for r in full) else '全路径更符合指数衰减' if len(full)==2 and all(p=='exponential' for p in preference) else '衰减形式未分出稳定优劣'
-        text=f"预设 lag {primary['start_lag']}–{primary['end_lag']} 的幂律指数 β={number(power['shape'])}；幂律 / 指数拟合 RMSE 分别为 {number(power['rmse'])} / {number(exp['rmse'])}。"
-        text+=' 比较同时检查远端滞后预测误差和时间分段稳定性。'
-        if persistence_test['stable_upper_rejection']:
-            label='长程持续性有检验支持'
-            text+=' 全段及半段的各带宽修正 R/S 均拒绝短期依赖参照，方向为持续性偏强。'
-        elif persistence_test['full_upper_rejection']:
-            text+=' 全段 R/S 有持续性证据，但半段结果未一致支持。'
-
-        if persistence_test['full_upper_rejection'] and not persistence_test['stable_upper_rejection']:
-            label='全样本持续性有迹象，分段不一致'
-        full_shape = len(full)==2 and all(r.get('slow_power_pattern') for r in full)
-        add(8,'supported' if persistence_test['stable_upper_rejection'] else 'indicative' if stable or full_shape or persistence_test['full_upper_rejection'] else 'mixed',label,text,
-            [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections')),
-             metric('幂律指数 β',power['shape']),metric('幂律 R²',power['r_squared'])],
-            level='asymptotic' if persistence_test['stable_upper_rejection'] else 'model',evidence={**decay,'persistence_test':persistence_test},
-            notes=['有限滞后内的曲线比较；长期记忆的辅助检验另保存在 R/S 结果中。'])
-    elif endpoint is None:
-        unavailable(8, decay.get('reason') or '配置范围的相关不可计算。')
-    else:
-        add(8,'insufficient_data','衰减拟合数据不足',decay.get('reason') or '未运行预设范围的衰减比较。',
-            [metric('终点 ACF',endpoint),metric('R/S 修正后拒绝数',lm.get('family_rejections'))],level='unavailable',evidence=decay)
+    primary = vp["loglog_decay"]
+    start, end = primary["start"], primary["end"]
+    labels = {"indicative": "波动相关缓慢衰减获部分支持", "mixed": "未见一致的缓慢衰减",
+              "inconclusive": "远端持续性证据不足", "insufficient_data": "无法评估"}
+    points = {r["lag"]: r["acf"] for r in primary["rows"]}
+    add(8, primary["conclusion"], labels[primary["conclusion"]], primary["summary"],
+        [metric(f"绝对收益 ACF({k})", points.get(k)) for k in (start,end)] +
+        [metric("幂律指数 β", primary["beta"])],
+        level="descriptive" if primary["status"] == "computed" else "unavailable",
+        evidence={k:v for k,v in primary.items() if k != "rows"})
+    rows["8"]["references"] = ["volatility_persistence.loglog_decay"]
 
     ev = [lag_evidence(group, config, "leverage", p) for p in ("absolute", "squared")]
     primary_policy = "primary_rows" in group["dependence_uncertainty"]
@@ -412,7 +391,7 @@ def assess(group, config):
         add(11, c, label, text, [metric("相邻粗区间方向差", row["difference"])],
             level="interval" if neg or pos else "descriptive", evidence=ev)
 
-    for key,status in [('5',fi.get('status','not_computable')),('7',ct['status']),('8',decay.get('status','not_computable'))]:
+    for key,status in [('5',fi.get('status','not_computable')),('7',ct['status']),('8',primary['status'])]:
         rows[key]['computation_status']=status
     # Put the actual supporting lags beside the verdict, rather than letting a
     # lag-1 display value appear to be the evidence for a multi-lag conclusion.

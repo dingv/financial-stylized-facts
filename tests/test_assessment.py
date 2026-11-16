@@ -148,10 +148,11 @@ def test_time_scale_and_output_are_explicit_and_deterministic():
 
 def test_disabled_or_budget_limited_memory_is_not_a_zero_rejection_result():
     g,c=example()
+    original = assess(g,c)["by_fact"]["8"]
     for status in ["disabled", "budget_exceeded"]:
         g['volatility_persistence']['long_memory_test'] = {"status":status, "reason":"not run"}
         a=assess(g,c)['by_fact']['8']
-        assert a['metrics'][1]['value'] is None
+        assert a == original
         assert '拒绝' not in a['summary']
 
 
